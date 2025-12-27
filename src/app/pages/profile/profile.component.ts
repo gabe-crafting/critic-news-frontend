@@ -6,6 +6,7 @@ import { AppTitleComponent } from '../../shared/components/app-title/app-title.c
 import { MenuComponent } from '../../shared/components/menu/menu.component';
 import { FeedComponent } from '../../shared/components/feed/feed.component';
 import { PostComponent } from '../../shared/components/post/post.component';
+import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
 import { AuthService } from '../../core/services/auth.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { PostsService, Post } from '../../core/services/posts.service';
@@ -14,14 +15,11 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppTitleComponent, MenuComponent, FeedComponent, PostComponent],
+  imports: [CommonModule, FormsModule, AppTitleComponent, MenuComponent, FeedComponent, PostComponent, ProfileHeaderComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
 export class ProfileComponent implements OnInit, OnDestroy {
-  isEditing = false;
-  editedName = '';
-  editedDescription = '';
   profileUserId: string | null = null;
   userPosts = signal<Post[]>([]);
   userPostsLoading = signal(false);
@@ -63,15 +61,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   async loadProfile(userId: string): Promise<void> {
     try {
       await this.profileService.getProfile(userId);
-      const profile = this.profileService.currentProfile();
-      if (profile) {
-        this.editedName = profile.name || '';
-        this.editedDescription = profile.description || '';
-      } else {
-        // Initialize with empty values if no profile exists
-        this.editedName = '';
-        this.editedDescription = '';
-      }
       // Load user posts
       await this.loadUserPosts(userId);
     } catch (error) {
@@ -157,117 +146,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  startEditing(): void {
-    const profile = this.profileService.currentProfile();
-    this.editedName = profile?.name || '';
-    this.editedDescription = profile?.description || '';
-    this.isEditing = true;
-  }
-
-  cancelEditing(): void {
-    const profile = this.profileService.currentProfile();
-    this.editedName = profile?.name || '';
-    this.editedDescription = profile?.description || '';
-    this.isEditing = false;
-  }
-
-  async saveProfile(): Promise<void> {
-    if (!this.profileUserId || !this.isOwner) {
-      return;
-    }
-
-    try {
-      await this.profileService.upsertProfile(this.profileUserId, {
-        name: this.editedName.trim() || undefined,
-        description: this.editedDescription.trim() || undefined
-      });
-      this.isEditing = false;
-    } catch (error) {
-      console.error('Failed to save profile:', error);
-    }
-  }
-
   get isOwner(): boolean {
     const currentUser = this.authService.currentUser();
     return currentUser?.id === this.profileUserId;
-  }
-
-  get displayName(): string {
-    const profile = this.profileService.currentProfile();
-    if (profile?.name) {
-      return profile.name;
-    }
-    // If viewing own profile, try to get email from auth user
-    if (this.isOwner) {
-      const user = this.authService.currentUser();
-      return user?.email?.split('@')[0] || 'User';
-    }
-    // For other users, return generic name if no profile name
-    return 'User';
-  }
-
-  get displayDescription(): string {
-    const profile = this.profileService.currentProfile();
-    return profile?.description || 'Software developer passionate about building great user experiences. Always learning and sharing knowledge with the community.';
-  }
-
-  get profilePictureUrl(): string | null {
-    const profile = this.profileService.currentProfile();
-    return profile?.profile_picture_url || null;
-  }
-
-  get profileInitial(): string {
-    return this.displayName.charAt(0).toUpperCase();
-  }
-
-  async onFileSelected(event: Event): Promise<void> {
-    if (!this.isOwner || !this.profileUserId) {
-      return;
-    }
-
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    // Validate file size (max 10MB before resizing)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Image file is too large. Please select a smaller image.');
-      return;
-    }
-
-    try {
-      await this.profileService.uploadProfilePicture(this.profileUserId, file);
-      // Reset file input
-      input.value = '';
-    } catch (error) {
-      console.error('Failed to upload profile picture:', error);
-      alert('Failed to upload profile picture. Please try again.');
-    }
-  }
-
-  async deleteProfilePicture(): Promise<void> {
-    if (!this.isOwner || !this.profileUserId) {
-      return;
-    }
-
-    if (!confirm('Are you sure you want to delete your profile picture?')) {
-      return;
-    }
-
-    try {
-      await this.profileService.deleteProfilePicture(this.profileUserId);
-    } catch (error) {
-      console.error('Failed to delete profile picture:', error);
-      alert('Failed to delete profile picture. Please try again.');
-    }
   }
 }
 
