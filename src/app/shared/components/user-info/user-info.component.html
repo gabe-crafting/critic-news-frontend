@@ -1,0 +1,22 @@
+@if (authService.currentUser(); as user) {
+  <div class="pt-4 border-t border-gray-200">
+    <div class="mb-3">
+      <p class="text-sm font-semibold text-gray-900">Profile info</p>
+    </div>
+    <div class="mb-2">
+      <p class="text-sm text-gray-600">{{ user.email }}</p>
+    </div>
+    <button
+      (click)="onLogout()"
+      [disabled]="authService.isLoading()"
+      class="text-sm font-medium text-red-600 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      @if (authService.isLoading()) {
+        Signing out...
+      } @else {
+        Sign out
+      }
+    </button>
+  </div>
+}
+

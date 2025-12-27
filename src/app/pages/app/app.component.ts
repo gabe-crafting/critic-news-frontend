@@ -1,21 +1,15 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { CommonModule } from '@angular/common';
-import { AuthService } from '../../core/services/auth.service';
+import { AppTitleComponent } from '../../shared/components/app-title/app-title.component';
+import { MenuComponent } from '../../shared/components/menu/menu.component';
+import { FeedComponent } from '../../shared/components/feed/feed.component';
 
 @Component({
   selector: 'app-app-page',
   standalone: true,
-  imports: [RouterLink, CommonModule],
+  imports: [AppTitleComponent, MenuComponent, FeedComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppPageComponent {
-  constructor(public authService: AuthService) {}
-
-  async onLogout(): Promise<void> {
-    await this.authService.signOut();
-  }
-}
+export class AppPageComponent {}
 
 

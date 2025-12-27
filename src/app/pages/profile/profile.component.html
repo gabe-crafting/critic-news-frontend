@@ -1,0 +1,163 @@
+<div class="min-h-screen flex">
+  <!-- Left Sidebar -->
+  <aside class="w-64 border-r border-gray-200 flex flex-col h-screen">
+    <div class="flex flex-col h-full p-4">
+      <!-- App Title -->
+      <div class="mb-8">
+        <app-app-title></app-app-title>
+      </div>
+
+      <!-- Menu Items (includes Profile Info at bottom) -->
+      <app-menu></app-menu>
+    </div>
+  </aside>
+
+  <!-- Right Content Area -->
+  <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+    @if (authService.currentUser(); as user) {
+      <!-- Cover/Banner Area - Full Width -->
+      <div class="h-48 bg-gradient-to-r from-sky-300 via-blue-400 to-purple-500 shrink-0"></div>
+
+      <!-- Profile Photo - Absolutely positioned to overlap banner -->
+      <div class="absolute left-0 top-24 z-20 px-6">
+        <div class="relative group">
+          <div class="w-36 h-36 rounded-full bg-white p-0.5 border-2 border-white shadow-md overflow-hidden relative">
+            @if (profilePictureUrl) {
+              <img
+                [src]="profilePictureUrl"
+                [alt]="displayName"
+                class="w-full h-full object-cover rounded-full"
+              />
+            } @else {
+              <div class="w-full h-full rounded-full bg-gray-200 flex items-center justify-center">
+                <span class="text-5xl font-semibold text-gray-700">
+                  {{ profileInitial }}
+                </span>
+              </div>
+            }
+            <!-- Upload overlay button - only visible on hover and if owner -->
+            @if (isOwner) {
+              <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-50 rounded-full flex items-center justify-center transition-opacity cursor-pointer pointer-events-none group-hover:pointer-events-auto">
+                <label class="cursor-pointer pointer-events-auto">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    (change)="onFileSelected($event)"
+                    [disabled]="profileService.isLoading()"
+                    class="hidden"
+                  />
+                  <span class="text-white opacity-0 group-hover:opacity-100 text-sm font-medium px-3 py-1 bg-blue-600 rounded-md hover:bg-blue-700 transition-opacity">
+                    @if (profileService.isLoading()) {
+                      Uploading...
+                    } @else {
+                      Change Photo
+                    }
+                  </span>
+                </label>
+              </div>
+            }
+          </div>
+          <!-- Delete button (only show if picture exists and user is owner) -->
+          @if (profilePictureUrl && isOwner) {
+            <button
+              (click)="deleteProfilePicture()"
+              [disabled]="profileService.isLoading()"
+              class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              title="Delete profile picture"
+            >
+              Delete
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Split Content Below Banner -->
+      <div class="flex-1 flex overflow-hidden">
+        <!-- Profile Info Section (1/3) -->
+        <div class="w-1/3 border-r border-gray-200 bg-white flex flex-col overflow-y-auto">
+          <!-- Profile Info Section -->
+          <div class="px-6 pb-6 pt-28">
+            <!-- Name and Description -->
+            <div class="mt-2">
+              @if (isEditing) {
+                <!-- Edit Mode -->
+                <div class="space-y-4">
+                  <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      id="name"
+                      type="text"
+                      [(ngModel)]="editedName"
+                      placeholder="Enter your name"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      id="description"
+                      [(ngModel)]="editedDescription"
+                      placeholder="Enter your description"
+                      rows="4"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    ></textarea>
+                  </div>
+                  <div class="flex gap-2">
+                    <button
+                      (click)="saveProfile()"
+                      [disabled]="profileService.isLoading()"
+                      class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      @if (profileService.isLoading()) {
+                        Saving...
+                      } @else {
+                        Save
+                      }
+                    </button>
+                    <button
+                      (click)="cancelEditing()"
+                      [disabled]="profileService.isLoading()"
+                      class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <!-- View Mode -->
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <h1 class="text-3xl font-bold text-gray-900">
+                      {{ displayName }}
+                    </h1>
+                    @if (isOwner) {
+                      <button
+                        (click)="startEditing()"
+                        class="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                      >
+                        Edit
+                      </button>
+                    }
+                  </div>
+                  <p class="text-gray-700 text-base leading-relaxed">
+                    {{ displayDescription }}
+                  </p>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Feed Component (2/3) -->
+        <div class="w-2/3 overflow-hidden">
+          <app-feed feedTitle="Posts" [showSearch]="false">
+            <!-- Feed content will go here -->
+            <div class="p-4">
+              <p class="text-gray-500 text-center py-8">No posts yet.</p>
+            </div>
+          </app-feed>
+        </div>
+      </div>
+    }
+  </main>
+</div>

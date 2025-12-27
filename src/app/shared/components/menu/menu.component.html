@@ -1,0 +1,17 @@
+<nav class="flex flex-col gap-4">
+  @for (item of menuItems; track item.route) {
+    <a
+      [routerLink]="item.route"
+      routerLinkActive="text-blue-600"
+      class="text-lg font-medium text-gray-900 hover:text-blue-600 transition-colors"
+    >
+      {{ item.label }}
+    </a>
+  }
+</nav>
+
+<!-- Profile Info at bottom -->
+<div class="mt-auto shrink-0">
+  <app-user-info></app-user-info>
+</div>
+
