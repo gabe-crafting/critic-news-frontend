@@ -1,13 +1,40 @@
 <div class="min-h-screen flex flex-col">
-  <nav class="flex items-center justify-between px-8 py-4 bg-gray-100 border-b border-gray-200">
-    <a routerLink="/" class="text-blue-600 no-underline font-medium transition-colors hover:text-blue-700">
-      Home
-    </a>
-    <h2 class="m-0 text-2xl font-semibold text-gray-900">Critic Newsfeed</h2>
+  <nav class="flex items-center px-8 py-4 bg-gray-100 border-b border-gray-200">
+    <div class="flex-1">
+      <h2 class="m-0 text-2xl font-semibold text-gray-900">Critic Newsfeed</h2>
+    </div>
+    <div class="flex-1 flex justify-center">
+      <a routerLink="/" class="text-blue-600 no-underline font-medium transition-colors hover:text-blue-700">
+        Home
+      </a>
+    </div>
+    <div class="flex-1 flex items-center justify-end gap-4">
+      @if (authService.currentUser()) {
+        <span class="text-sm text-gray-700">
+          {{ authService.currentUser()?.email }}
+        </span>
+        <button
+          (click)="onLogout()"
+          [disabled]="authService.isLoading()"
+          class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          @if (authService.isLoading()) {
+            Signing out...
+          } @else {
+            Sign out
+          }
+        </button>
+      }
+    </div>
   </nav>
   <main class="flex-1 p-8 max-w-7xl mx-auto w-full">
     <h1 class="text-4xl font-semibold mb-4 text-gray-900">App Page</h1>
     <p class="text-lg text-gray-600">This is the main application page.</p>
+    @if (authService.currentUser()) {
+      <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+        <p class="text-sm text-gray-600">Logged in as: <strong>{{ authService.currentUser()?.email }}</strong></p>
+      </div>
+    }
   </main>
 </div>
 

@@ -47,7 +47,7 @@
 - Use `@supabase/supabase-js` client library for all database operations
 - Always enable Row Level Security (RLS) on all tables
 - Create comprehensive RLS policies for data access control
-- Use the `anon` key in frontend (safe to expose) - never use `service_role` key
+- Use the Publishable key in frontend (safe to expose) - never use `service_role` key
 - Store Supabase credentials in environment files
 - Use Supabase Auth for authentication (email, OAuth, magic links)
 - Leverage Supabase Realtime for live data updates when needed
@@ -86,7 +86,7 @@
 
 ## Security
 - Never commit secrets or API keys (use environment files)
-- Never expose `service_role` key - only use `anon` key in frontend
+- Never expose `service_role` key - only use Publishable key in frontend
 - Always enable Row Level Security (RLS) on all database tables
 - Create comprehensive RLS policies for data access control
 - Validate and sanitize user input before sending to Supabase
