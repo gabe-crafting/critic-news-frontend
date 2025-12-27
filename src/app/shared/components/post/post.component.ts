@@ -1,14 +1,15 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Post } from '../../../core/services/posts.service';
+import { Post, PostsService, CreatePostData } from '../../../core/services/posts.service';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-post',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './post.component.html',
   styleUrl: './post.component.css'
 })
@@ -16,10 +17,17 @@ export class PostComponent {
   @Input() post!: Post;
   @Input() showDelete = false;
   @Output() onDelete = new EventEmitter<string>();
+  @Output() onUpdate = new EventEmitter<Post>();
+
+  isEditing = false;
+  editedDescription = '';
+  editedNewsLink = '';
+  editedArchiveLink = '';
 
   constructor(
     public profileService: ProfileService,
-    public authService: AuthService
+    public authService: AuthService,
+    public postsService: PostsService
   ) {}
 
   get isOwner(): boolean {
@@ -29,6 +37,10 @@ export class PostComponent {
 
   get canDelete(): boolean {
     return this.showDelete && this.isOwner;
+  }
+
+  get canEdit(): boolean {
+    return this.isOwner;
   }
 
   getUserName(): string {
@@ -86,6 +98,60 @@ export class PostComponent {
         console.error('Fallback copy failed:', fallbackErr);
       }
       document.body.removeChild(textArea);
+    }
+  }
+
+  startEditing(): void {
+    this.editedDescription = this.post.description;
+    this.editedNewsLink = this.post.news_link;
+    this.editedArchiveLink = this.post.archive_link || '';
+    this.isEditing = true;
+  }
+
+  cancelEditing(): void {
+    this.isEditing = false;
+    this.editedDescription = '';
+    this.editedNewsLink = '';
+    this.editedArchiveLink = '';
+  }
+
+  async saveEdit(): Promise<void> {
+    if (!this.editedDescription.trim() || !this.editedNewsLink.trim()) {
+      alert('Please fill in description and news link');
+      return;
+    }
+
+    // Validate URL format
+    try {
+      new URL(this.editedNewsLink);
+    } catch {
+      alert('Please enter a valid news link URL');
+      return;
+    }
+
+    if (this.editedArchiveLink.trim()) {
+      try {
+        new URL(this.editedArchiveLink);
+      } catch {
+        alert('Please enter a valid archive link URL');
+        return;
+      }
+    }
+
+    try {
+      const updateData: Partial<CreatePostData> = {
+        description: this.editedDescription.trim(),
+        news_link: this.editedNewsLink.trim(),
+        archive_link: this.editedArchiveLink.trim() || undefined
+      };
+
+      const updatedPost = await this.postsService.updatePost(this.post.id, updateData);
+      this.onUpdate.emit(updatedPost);
+      this.isEditing = false;
+    } catch (error: any) {
+      console.error('Failed to update post:', error);
+      const errorMessage = error?.message || error?.error?.message || 'Failed to update post. Please try again.';
+      alert(errorMessage);
     }
   }
 }

@@ -1,7 +1,7 @@
-<div class="flex-1 flex flex-col h-screen overflow-y-auto">
+<div class="flex-1 flex flex-col h-full overflow-y-auto">
   @if (showSearch) {
     <!-- Searchbar -->
-    <div class="sticky top-0 z-10 bg-white border-b border-gray-200 p-4">
+    <div class="sticky top-0 z-10 bg-white border-b border-gray-200 p-4 shrink-0">
       <input
         type="text"
         placeholder="Search..."
@@ -12,13 +12,13 @@
 
   <!-- Feed Header -->
   @if (feedTitle) {
-    <div class="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
+    <div class="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 shrink-0">
       <h2 class="text-xl font-bold text-gray-900">{{ feedTitle }}</h2>
     </div>
   }
 
   <!-- Feed Content -->
-  <div class="flex-1">
+  <div class="flex-1 min-h-0">
     <ng-content></ng-content>
   </div>
 </div>

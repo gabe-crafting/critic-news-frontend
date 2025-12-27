@@ -19,7 +19,7 @@
       <app-profile-header [profileUserId]="profileUserId"></app-profile-header>
 
       <!-- Feed Component - Full Width -->
-      <div class="flex-1 overflow-hidden">
+      <div class="flex-1 min-h-0 overflow-hidden">
         <app-feed feedTitle="" [showSearch]="false">
             <!-- Create Post Form (only for owner) -->
             @if (isOwner) {
@@ -102,7 +102,7 @@
                 </div>
               } @else {
                 @for (post of userPosts(); track post.id) {
-                  <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)"></app-post>
+                  <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)" (onUpdate)="onPostUpdate($event)"></app-post>
                 }
               }
             </div>

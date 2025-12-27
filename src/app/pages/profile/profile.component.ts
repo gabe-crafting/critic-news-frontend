@@ -97,6 +97,13 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
+  onPostUpdate(updatedPost: Post): void {
+    // Update the post in the local array
+    this.userPosts.update(posts =>
+      posts.map(post => (post.id === updatedPost.id ? updatedPost : post))
+    );
+  }
+
   async createPost(): Promise<void> {
     if (!this.profileUserId || !this.isOwner) {
       return;

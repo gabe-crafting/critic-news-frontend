@@ -13,7 +13,7 @@
   </aside>
 
   <!-- Right Content Area -->
-  <main class="flex-1">
+  <main class="flex-1 flex flex-col h-screen overflow-hidden">
     <app-feed feedTitle="Home" [showSearch]="true">
       <!-- Posts List -->
       <div>
@@ -22,9 +22,9 @@
         } @else if (postsService.posts().length === 0) {
           <div class="p-8 text-center text-gray-500">No posts yet.</div>
         } @else {
-          @for (post of postsService.posts(); track post.id) {
-            <app-post [post]="post" [showDelete]="true" (onDelete)="deletePost($event)"></app-post>
-          }
+                @for (post of postsService.posts(); track post.id) {
+                  <app-post [post]="post" [showDelete]="true" (onDelete)="deletePost($event)" (onUpdate)="onPostUpdate($event)"></app-post>
+                }
         }
       </div>
     </app-feed>

@@ -192,22 +192,35 @@ export class PostsService {
     this.error.set(null);
 
     try {
-      const { data, error } = await this.supabase
+      const { data: postData, error } = await this.supabase
         .from('posts')
         .update(updates)
         .eq('id', postId)
-        .select()
+        .select('*')
         .single();
 
       if (error) {
         throw error;
       }
 
+      // Fetch user profile (may not exist, so use maybeSingle())
+      const { data: profileData } = await this.supabase
+        .from('user_profiles')
+        .select('id, name, profile_picture_url')
+        .eq('id', postData.user_id)
+        .maybeSingle();
+
+      // Combine post with profile
+      const updatedPost = {
+        ...postData,
+        user_profiles: profileData || null
+      };
+
       // Update post in the posts array
       this.posts.update(posts =>
-        posts.map(post => (post.id === postId ? data : post))
+        posts.map(post => (post.id === postId ? updatedPost : post))
       );
-      return data;
+      return updatedPost;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to update post');
       throw err;

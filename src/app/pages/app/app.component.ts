@@ -44,6 +44,11 @@ export class AppPageComponent implements OnInit {
       alert('Failed to delete post. Please try again.');
     }
   }
+
+  onPostUpdate(updatedPost: any): void {
+    // The posts service already updates the signal, so this is just for consistency
+    // The signal will automatically trigger a re-render
+  }
 }
 
 
