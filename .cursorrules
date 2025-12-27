@@ -1,0 +1,117 @@
+# Cursor Rules for Critic Newsfeed Project
+
+## Project Structure
+- **Frontend**: Angular 21 with TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime)
+- **Code Style**: Follow existing patterns and conventions
+
+## General Principles
+- Write clean, maintainable, and well-documented code
+- Follow SOLID principles
+- Prefer composition over inheritance
+- Keep functions small and focused
+- Use meaningful variable and function names
+- Add comments for complex logic, not obvious code
+- Handle errors explicitly - never ignore errors
+
+## TypeScript/Angular Guidelines
+- Use single quotes for strings (as per Prettier config)
+- Use strict TypeScript settings
+- Prefer interfaces over types for object shapes
+- Use Angular standalone components
+- Follow Angular style guide: https://angular.io/guide/styleguide
+- Use RxJS operators properly - avoid nested subscriptions
+- Use async/await with observables via `firstValueFrom` or `lastValueFrom` when needed
+- Use OnPush change detection strategy when possible
+- Keep components small and focused on presentation
+- Extract business logic to services
+- Use dependency injection properly
+- Format code with Prettier (100 char width, single quotes)
+
+## Tailwind CSS Guidelines
+- **Always use Tailwind CSS utility classes** for styling - avoid writing custom CSS when Tailwind utilities are available
+- Prefer Tailwind utility classes over component-scoped CSS files
+- Use Tailwind's responsive prefixes (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`) for responsive design
+- Use Tailwind's state variants (`hover:`, `focus:`, `active:`, `disabled:`, etc.) for interactive elements
+- Leverage Tailwind's spacing scale (e.g., `p-4`, `m-2`, `gap-6`) instead of arbitrary values
+- Use Tailwind's color palette and semantic color names when possible
+- For complex layouts, use Tailwind's flexbox and grid utilities (`flex`, `grid`, `flex-col`, `grid-cols-3`, etc.)
+- Use Tailwind's typography utilities (`text-sm`, `font-bold`, `leading-tight`, etc.)
+- Only create custom CSS classes when absolutely necessary (e.g., complex animations, unique design patterns)
+- When custom CSS is needed, use `@apply` directive to compose Tailwind utilities
+- Keep component CSS files minimal - prefer inline Tailwind classes in templates
+- Use Tailwind's dark mode utilities (`dark:`) when implementing dark mode
+- Follow Tailwind's mobile-first approach - design for mobile, then add larger breakpoint styles
+
+## Supabase Guidelines
+- Use `@supabase/supabase-js` client library for all database operations
+- Always enable Row Level Security (RLS) on all tables
+- Create comprehensive RLS policies for data access control
+- Use the `anon` key in frontend (safe to expose) - never use `service_role` key
+- Store Supabase credentials in environment files
+- Use Supabase Auth for authentication (email, OAuth, magic links)
+- Leverage Supabase Realtime for live data updates when needed
+- Use Supabase Storage for file uploads
+- Handle Supabase errors properly with try/catch blocks
+- Use TypeScript types generated from Supabase schema when possible
+- Prefer Supabase client methods over raw SQL when possible
+- Use migrations for schema changes
+
+## File Organization
+- Keep related files together
+- Use feature-based organization in Angular
+- Separate concerns: models, services, components
+- Group services by feature/domain
+
+## Error Handling
+- Use proper error handling with try/catch blocks
+- Handle Supabase errors explicitly - check error objects from Supabase responses
+- Provide meaningful error messages to users
+- Log errors appropriately for debugging
+- Use Angular's error handling mechanisms (error interceptors, error services)
+
+## Testing
+- Write tests for critical business logic
+- Use Angular testing utilities for component tests
+- Mock Supabase client in tests - don't make real API calls
+- Aim for good test coverage on core functionality
+- Test RLS policies and data access logic
+
+## API Design
+- Use Supabase's auto-generated REST API
+- Follow Supabase query patterns and conventions
+- Use consistent data structures across the application
+- Document service methods and data models
+- Supabase handles CORS automatically - no manual configuration needed
+
+## Security
+- Never commit secrets or API keys (use environment files)
+- Never expose `service_role` key - only use `anon` key in frontend
+- Always enable Row Level Security (RLS) on all database tables
+- Create comprehensive RLS policies for data access control
+- Validate and sanitize user input before sending to Supabase
+- Use Supabase Auth for authentication - don't implement custom auth
+- Follow OWASP guidelines
+- Regularly review and update RLS policies
+
+## Performance
+- Optimize Supabase queries - use `.select()` to fetch only needed columns
+- Use pagination for large datasets (`.range()` or `.limit()`)
+- Implement client-side caching where appropriate
+- Use Supabase Realtime subscriptions efficiently - unsubscribe when not needed
+- Minimize bundle size in frontend
+- Use lazy loading for Angular modules/routes
+- Use Supabase indexes for frequently queried columns
+
+## Git & Commits
+- Write clear, descriptive commit messages
+- Keep commits focused and atomic
+- Use conventional commit format when possible
+
+## When Making Changes
+- Update related tests
+- Update documentation if APIs change
+- Consider backward compatibility
+- Review dependencies for security updates
+- Follow existing code patterns in the project
+
