@@ -15,9 +15,17 @@
   <!-- Right Content Area -->
   <main class="flex-1">
     <app-feed feedTitle="Home" [showSearch]="true">
-      <!-- Feed content will go here -->
-      <div class="p-4">
-        <p class="text-gray-500 text-center py-8">Welcome to your feed!</p>
+      <!-- Posts List -->
+      <div>
+        @if (postsService.isLoading() && postsService.posts().length === 0) {
+          <div class="p-8 text-center text-gray-500">Loading posts...</div>
+        } @else if (postsService.posts().length === 0) {
+          <div class="p-8 text-center text-gray-500">No posts yet.</div>
+        } @else {
+          @for (post of postsService.posts(); track post.id) {
+            <app-post [post]="post" [showDelete]="true" (onDelete)="deletePost($event)"></app-post>
+          }
+        }
       </div>
     </app-feed>
   </main>

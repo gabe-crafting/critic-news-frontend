@@ -151,9 +151,90 @@
         <!-- Feed Component (2/3) -->
         <div class="w-2/3 overflow-hidden">
           <app-feed feedTitle="Posts" [showSearch]="false">
-            <!-- Feed content will go here -->
-            <div class="p-4">
-              <p class="text-gray-500 text-center py-8">No posts yet.</p>
+            <!-- Create Post Form (only for owner) -->
+            @if (isOwner) {
+              <div class="border-b border-gray-200 p-4 bg-white">
+                @if (!showCreateForm) {
+                  <button
+                    (click)="showCreateForm = true"
+                    class="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-gray-500"
+                  >
+                    What's happening?
+                  </button>
+                } @else {
+                  <div class="space-y-4">
+                    <div>
+                      <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <textarea
+                        id="description"
+                        [(ngModel)]="newPostDescription"
+                        placeholder="Share your thoughts..."
+                        rows="4"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      ></textarea>
+                    </div>
+                    <div>
+                      <label for="newsLink" class="block text-sm font-medium text-gray-700 mb-1">News Link *</label>
+                      <input
+                        id="newsLink"
+                        type="url"
+                        [(ngModel)]="newPostNewsLink"
+                        placeholder="https://example.com/news"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label for="archiveLink" class="block text-sm font-medium text-gray-700 mb-1">Archive Link (optional)</label>
+                      <input
+                        id="archiveLink"
+                        type="url"
+                        [(ngModel)]="newPostArchiveLink"
+                        placeholder="https://example.com/archive"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        (click)="createPost()"
+                        [disabled]="postsService.isLoading()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        @if (postsService.isLoading()) {
+                          Posting...
+                        } @else {
+                          Post
+                        }
+                      </button>
+                      <button
+                        (click)="showCreateForm = false"
+                        [disabled]="postsService.isLoading()"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Posts List -->
+            <div>
+              @if (userPostsLoading()) {
+                <div class="p-8 text-center text-gray-500">Loading posts...</div>
+              } @else if (userPosts().length === 0) {
+                <div class="p-8 text-center text-gray-500">
+                  @if (isOwner) {
+                    No posts yet. Create your first post!
+                  } @else {
+                    No posts yet.
+                  }
+                </div>
+              } @else {
+                @for (post of userPosts(); track post.id) {
+                  <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)"></app-post>
+                }
+              }
             </div>
           </app-feed>
         </div>

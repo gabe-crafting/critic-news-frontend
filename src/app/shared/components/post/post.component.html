@@ -1,0 +1,87 @@
+<div class="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors">
+  <div class="flex gap-3">
+    <!-- Profile Picture/Initial -->
+    <div class="flex-shrink-0">
+      <a [routerLink]="['/profile', post.user_id]" class="block">
+        <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+          @if (post.user_profiles?.profile_picture_url; as pictureUrl) {
+            <img [src]="pictureUrl" [alt]="'User profile'" class="w-full h-full object-cover" />
+          } @else {
+            <span class="text-lg font-semibold text-gray-600">
+              {{ getUserInitial() }}
+            </span>
+          }
+        </div>
+      </a>
+    </div>
+
+    <!-- Post Content -->
+    <div class="flex-1 min-w-0">
+      <!-- User Info -->
+      <div class="flex items-center gap-2 mb-1">
+        <a [routerLink]="['/profile', post.user_id]" class="font-semibold text-gray-900 hover:underline">
+          {{ getUserName() }}
+        </a>
+        <span class="text-gray-500 text-sm">
+          {{ formatDate(post.created_at) }}
+        </span>
+      </div>
+
+      <!-- Description -->
+      <p class="text-gray-900 mb-3 whitespace-pre-wrap break-words">
+        {{ post.description }}
+      </p>
+
+      <!-- Links -->
+      <div class="flex flex-col gap-2">
+        <div class="inline-flex items-center gap-2">
+          <button
+            (click)="copyNewsLink($event)"
+            class="text-blue-600 hover:text-blue-700 text-sm font-medium p-0 border-0 bg-transparent cursor-pointer"
+            title="Copy news link"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+          @if (canDelete) {
+            <button
+              (click)="onDelete.emit(post.id)"
+              class="text-red-600 hover:text-red-700 text-sm font-medium p-0 border-0 bg-transparent cursor-pointer"
+              title="Delete post"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          }
+          <a
+            [href]="post.news_link"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-600 hover:text-blue-700 hover:underline text-sm font-medium inline-flex items-center gap-1"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            News Link
+          </a>
+        </div>
+        @if (post.archive_link) {
+          <a
+            [href]="post.archive_link"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-600 hover:text-blue-700 hover:underline text-sm font-medium inline-flex items-center gap-1"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Archive Link
+          </a>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
