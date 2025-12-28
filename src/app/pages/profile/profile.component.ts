@@ -2,11 +2,14 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
 import { AppTitleComponent } from '../../shared/components/app-title/app-title.component';
 import { MenuComponent } from '../../shared/components/menu/menu.component';
 import { FeedComponent } from '../../shared/components/feed/feed.component';
 import { PostComponent } from '../../shared/components/post/post.component';
 import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
+import { TagsSidebarComponent } from '../../shared/components/tags-sidebar/tags-sidebar.component';
+import { UserInfoComponent } from '../../shared/components/user-info/user-info.component';
 import { AuthService } from '../../core/services/auth.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { PostsService, Post } from '../../core/services/posts.service';
@@ -15,7 +18,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppTitleComponent, MenuComponent, FeedComponent, PostComponent, ProfileHeaderComponent],
+  imports: [CommonModule, FormsModule, MatCardModule, AppTitleComponent, MenuComponent, FeedComponent, PostComponent, ProfileHeaderComponent, TagsSidebarComponent, UserInfoComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })

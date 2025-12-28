@@ -1,7 +1,8 @@
-:host {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
+.sign-out-button {
+  color: #dc2626 !important; /* red-600 */
 }
 
+.sign-out-button:hover {
+  color: #b91c1c !important; /* red-700 */
+  background-color: #fef2f2 !important; /* red-50 */
+}

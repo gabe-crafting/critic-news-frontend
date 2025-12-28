@@ -1,17 +1,27 @@
-<nav class="flex flex-col gap-4">
+<nav class="flex flex-col gap-2 items-center">
   @for (item of menuItems; track item.route) {
-    <a
-      [routerLink]="item.route"
-      routerLinkActive="text-blue-600"
-      class="text-lg font-medium text-gray-900 hover:text-blue-600 transition-colors"
+    <button
+      mat-button
+      [color]="isActive(item.route) ? 'primary' : ''"
+      (click)="item.mock ? onMockClick(item.label) : router.navigate([item.route])"
+      class="w-full justify-center"
     >
       {{ item.label }}
-    </a>
+    </button>
+  }
+  @if (authService.currentUser()) {
+    <button
+      mat-button
+      (click)="onLogout()"
+      [disabled]="authService.isLoading()"
+      class="w-full justify-center sign-out-button disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      @if (authService.isLoading()) {
+        Signing out...
+      } @else {
+        Sign out
+      }
+    </button>
   }
 </nav>
-
-<!-- Profile Info at bottom -->
-<div class="mt-auto shrink-0">
-  <app-user-info></app-user-info>
-</div>
 

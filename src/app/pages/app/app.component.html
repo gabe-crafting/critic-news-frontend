@@ -1,19 +1,32 @@
-<div class="min-h-screen flex">
+<div class="min-h-screen flex mx-auto" style="max-width: 1400px; margin-left: auto; margin-right: auto;">
   <!-- Left Sidebar -->
-  <aside class="w-64 border-r border-gray-200 flex flex-col h-screen">
-    <div class="flex flex-col h-full p-4">
-      <!-- App Title -->
-      <div class="mb-8">
-        <app-app-title></app-app-title>
-      </div>
+  <aside class="w-80 p-4 flex flex-col h-screen">
+    <div class="flex flex-col h-full gap-4">
+      <!-- App Title in Material Card -->
+      <mat-card class="w-full transparent-card">
+        <mat-card-content class="p-4">
+          <app-app-title></app-app-title>
+        </mat-card-content>
+      </mat-card>
 
-      <!-- Menu Items -->
-      <app-menu></app-menu>
+      <!-- Menu Items in Material Card -->
+      <mat-card class="w-full transparent-card">
+        <mat-card-content class="p-4 flex flex-col">
+          <app-menu></app-menu>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Profile Info Card -->
+      <mat-card class="w-full transparent-card">
+        <mat-card-content class="p-4">
+          <app-user-info></app-user-info>
+        </mat-card-content>
+      </mat-card>
     </div>
   </aside>
 
-  <!-- Right Content Area -->
-  <main class="flex-1 flex flex-col h-screen overflow-hidden">
+  <!-- Center Content Area -->
+  <main class="flex-1 flex flex-col h-screen overflow-hidden px-4 pt-4">
     <app-feed feedTitle="Home" [showSearch]="true">
       <!-- Posts List -->
       <div>
@@ -29,5 +42,10 @@
       </div>
     </app-feed>
   </main>
+
+  <!-- Right Sidebar - Tags -->
+  <aside class="w-80 p-4 flex flex-col h-screen">
+    <app-tags-sidebar></app-tags-sidebar>
+  </aside>
 </div>
 

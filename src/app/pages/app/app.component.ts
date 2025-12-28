@@ -1,16 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
 import { AppTitleComponent } from '../../shared/components/app-title/app-title.component';
 import { MenuComponent } from '../../shared/components/menu/menu.component';
 import { FeedComponent } from '../../shared/components/feed/feed.component';
 import { PostComponent } from '../../shared/components/post/post.component';
+import { TagsSidebarComponent } from '../../shared/components/tags-sidebar/tags-sidebar.component';
+import { UserInfoComponent } from '../../shared/components/user-info/user-info.component';
 import { PostsService } from '../../core/services/posts.service';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-app-page',
   standalone: true,
-  imports: [CommonModule, AppTitleComponent, MenuComponent, FeedComponent, PostComponent],
+  imports: [CommonModule, MatCardModule, AppTitleComponent, MenuComponent, FeedComponent, PostComponent, TagsSidebarComponent, UserInfoComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
