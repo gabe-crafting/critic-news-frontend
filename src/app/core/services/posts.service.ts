@@ -151,7 +151,7 @@ export class PostsService {
           user_id: userId,
           description: postData.description,
           news_link: postData.news_link,
-          archive_link: postData.archive_link || null
+          archive_link: null
         })
         .select('*')
         .single();

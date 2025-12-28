@@ -22,7 +22,6 @@ export class PostComponent {
   isEditing = false;
   editedDescription = '';
   editedNewsLink = '';
-  editedArchiveLink = '';
 
   constructor(
     public profileService: ProfileService,
@@ -104,7 +103,6 @@ export class PostComponent {
   startEditing(): void {
     this.editedDescription = this.post.description;
     this.editedNewsLink = this.post.news_link;
-    this.editedArchiveLink = this.post.archive_link || '';
     this.isEditing = true;
   }
 
@@ -112,7 +110,6 @@ export class PostComponent {
     this.isEditing = false;
     this.editedDescription = '';
     this.editedNewsLink = '';
-    this.editedArchiveLink = '';
   }
 
   async saveEdit(): Promise<void> {
@@ -129,20 +126,10 @@ export class PostComponent {
       return;
     }
 
-    if (this.editedArchiveLink.trim()) {
-      try {
-        new URL(this.editedArchiveLink);
-      } catch {
-        alert('Please enter a valid archive link URL');
-        return;
-      }
-    }
-
     try {
       const updateData: Partial<CreatePostData> = {
         description: this.editedDescription.trim(),
-        news_link: this.editedNewsLink.trim(),
-        archive_link: this.editedArchiveLink.trim() || undefined
+        news_link: this.editedNewsLink.trim()
       };
 
       const updatedPost = await this.postsService.updatePost(this.post.id, updateData);

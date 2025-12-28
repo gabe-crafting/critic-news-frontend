@@ -1,0 +1,40 @@
+<h2 mat-dialog-title class="mb-0">Edit Profile</h2>
+
+<mat-dialog-content class="min-w-[400px]">
+  <div class="flex flex-col gap-4 pt-4">
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Name</mat-label>
+      <input matInput [(ngModel)]="editedName" placeholder="Enter your name" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Description</mat-label>
+      <textarea 
+        matInput 
+        [(ngModel)]="editedDescription" 
+        placeholder="Enter your description"
+        rows="4"
+        class="resize-none"
+      ></textarea>
+    </mat-form-field>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions class="flex justify-end gap-2">
+  <button mat-button (click)="onCancel()" [disabled]="profileService.isLoading()">
+    Cancel
+  </button>
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="onSave()" 
+    [disabled]="profileService.isLoading()"
+  >
+    @if (profileService.isLoading()) {
+      Saving...
+    } @else {
+      Save
+    }
+  </button>
+</mat-dialog-actions>
+

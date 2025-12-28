@@ -25,7 +25,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   userPostsLoading = signal(false);
   newPostDescription = '';
   newPostNewsLink = '';
-  newPostArchiveLink = '';
   showCreateForm = false;
   private routeSubscription?: Subscription;
 
@@ -122,20 +121,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.newPostArchiveLink.trim()) {
-      try {
-        new URL(this.newPostArchiveLink);
-      } catch {
-        alert('Please enter a valid archive link URL');
-        return;
-      }
-    }
-
     try {
       const newPost = await this.postsService.createPost(this.profileUserId, {
         description: this.newPostDescription.trim(),
-        news_link: this.newPostNewsLink.trim(),
-        archive_link: this.newPostArchiveLink.trim() || undefined
+        news_link: this.newPostNewsLink.trim()
       });
 
       // Add the new post to the beginning of the user posts array
@@ -144,7 +133,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
       // Reset form
       this.newPostDescription = '';
       this.newPostNewsLink = '';
-      this.newPostArchiveLink = '';
       this.showCreateForm = false;
     } catch (error: any) {
       console.error('Failed to create post:', error);

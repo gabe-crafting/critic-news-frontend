@@ -53,16 +53,6 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
-                    <div>
-                      <label for="archiveLink" class="block text-sm font-medium text-gray-700 mb-1">Archive Link (optional)</label>
-                      <input
-                        id="archiveLink"
-                        type="url"
-                        [(ngModel)]="newPostArchiveLink"
-                        placeholder="https://example.com/archive"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
                     <div class="flex gap-2">
                       <button
                         (click)="createPost()"

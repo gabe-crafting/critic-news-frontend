@@ -1,36 +1,27 @@
 import { Component, Input, effect, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { EditProfileDialogComponent, EditProfileDialogData } from '../edit-profile-dialog/edit-profile-dialog.component';
 
 @Component({
   selector: 'app-profile-header',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatDialogModule],
   templateUrl: './profile-header.component.html',
   styleUrl: './profile-header.component.css'
 })
 export class ProfileHeaderComponent implements OnChanges {
   @Input() profileUserId: string | null = null;
 
-  isEditing = false;
-  editedName = '';
-  editedDescription = '';
 
   constructor(
     public profileService: ProfileService,
-    public authService: AuthService
-  ) {
-    // Watch for profile changes and update edit form
-    effect(() => {
-      const profile = this.profileService.currentProfile();
-      if (profile && !this.isEditing) {
-        this.editedName = profile.name || '';
-        this.editedDescription = profile.description || '';
-      }
-    });
-  }
+    public authService: AuthService,
+    private dialog: MatDialog
+  ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['profileUserId'] && this.profileUserId) {
@@ -71,34 +62,30 @@ export class ProfileHeaderComponent implements OnChanges {
     return this.displayName.charAt(0).toUpperCase();
   }
 
-  startEditing(): void {
-    const profile = this.profileService.currentProfile();
-    this.editedName = profile?.name || '';
-    this.editedDescription = profile?.description || '';
-    this.isEditing = true;
-  }
-
-  cancelEditing(): void {
-    const profile = this.profileService.currentProfile();
-    this.editedName = profile?.name || '';
-    this.editedDescription = profile?.description || '';
-    this.isEditing = false;
-  }
-
-  async saveProfile(): Promise<void> {
+  openEditDialog(): void {
     if (!this.profileUserId || !this.isOwner) {
       return;
     }
 
-    try {
-      await this.profileService.upsertProfile(this.profileUserId, {
-        name: this.editedName.trim() || undefined,
-        description: this.editedDescription.trim() || undefined
-      });
-      this.isEditing = false;
-    } catch (error) {
-      console.error('Failed to save profile:', error);
-    }
+    const profile = this.profileService.currentProfile();
+    const dialogData: EditProfileDialogData = {
+      name: profile?.name || '',
+      description: profile?.description || '',
+      profileUserId: this.profileUserId
+    };
+
+    const dialogRef = this.dialog.open(EditProfileDialogComponent, {
+      data: dialogData,
+      width: '500px',
+      disableClose: false
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Profile was saved successfully
+        // The profile service will have already updated the profile
+      }
+    });
   }
 
   async onFileSelected(event: Event): Promise<void> {
