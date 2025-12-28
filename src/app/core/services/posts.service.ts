@@ -7,6 +7,7 @@ export interface Post {
   description: string;
   news_link: string;
   archive_link: string | null;
+  tags: string[] | null;
   created_at: string;
   updated_at: string;
   user_profiles?: {
@@ -19,6 +20,7 @@ export interface CreatePostData {
   description: string;
   news_link: string;
   archive_link?: string;
+  tags?: string[];
 }
 
 @Injectable({
@@ -37,16 +39,27 @@ export class PostsService {
 
   /**
    * Get all posts, ordered by creation date (newest first)
+   * @param limit Maximum number of posts to return
+   * @param tags Optional array of tags to filter by (posts must contain at least one of these tags)
    */
-  async getPosts(limit = 50): Promise<Post[]> {
+  async getPosts(limit = 50, tags?: string[]): Promise<Post[]> {
     this.isLoading.set(true);
     this.error.set(null);
 
     try {
-      // First get all posts
-      const { data: postsData, error: postsError } = await this.supabase
+      // Build query
+      let query = this.supabase
         .from('posts')
-        .select('*')
+        .select('*');
+
+      // Filter by tags if provided
+      if (tags && tags.length > 0) {
+        // Use overlaps operator to find posts that contain any of the specified tags
+        query = query.overlaps('tags', tags);
+      }
+
+      // Execute query
+      const { data: postsData, error: postsError } = await query
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -151,7 +164,8 @@ export class PostsService {
           user_id: userId,
           description: postData.description,
           news_link: postData.news_link,
-          archive_link: null
+          archive_link: null,
+          tags: postData.tags && postData.tags.length > 0 ? postData.tags : null
         })
         .select('*')
         .single();

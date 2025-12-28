@@ -5,11 +5,12 @@ import { RouterLink } from '@angular/router';
 import { Post, PostsService, CreatePostData } from '../../../core/services/posts.service';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { TagsInputComponent } from '../tags-input/tags-input.component';
 
 @Component({
   selector: 'app-post',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TagsInputComponent],
   templateUrl: './post.component.html',
   styleUrl: './post.component.css'
 })
@@ -22,6 +23,7 @@ export class PostComponent {
   isEditing = false;
   editedDescription = '';
   editedNewsLink = '';
+  editedTags: string[] = [];
 
   constructor(
     public profileService: ProfileService,
@@ -103,6 +105,7 @@ export class PostComponent {
   startEditing(): void {
     this.editedDescription = this.post.description;
     this.editedNewsLink = this.post.news_link;
+    this.editedTags = this.post.tags ? [...this.post.tags] : [];
     this.isEditing = true;
   }
 
@@ -110,6 +113,7 @@ export class PostComponent {
     this.isEditing = false;
     this.editedDescription = '';
     this.editedNewsLink = '';
+    this.editedTags = [];
   }
 
   async saveEdit(): Promise<void> {
@@ -129,7 +133,8 @@ export class PostComponent {
     try {
       const updateData: Partial<CreatePostData> = {
         description: this.editedDescription.trim(),
-        news_link: this.editedNewsLink.trim()
+        news_link: this.editedNewsLink.trim(),
+        tags: this.editedTags.length > 0 ? this.editedTags : undefined
       };
 
       const updatedPost = await this.postsService.updatePost(this.post.id, updateData);

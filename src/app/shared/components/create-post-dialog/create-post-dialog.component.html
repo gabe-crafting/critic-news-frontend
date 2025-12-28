@@ -1,0 +1,51 @@
+<h2 mat-dialog-title class="mb-0">Create Post</h2>
+
+<mat-dialog-content class="min-w-[500px]">
+  <div class="flex flex-col gap-4 pt-4">
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Description</mat-label>
+      <textarea 
+        matInput 
+        [(ngModel)]="description" 
+        placeholder="Share your thoughts..."
+        rows="4"
+        class="resize-none"
+      ></textarea>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>News Link *</mat-label>
+      <input 
+        matInput 
+        type="url"
+        [(ngModel)]="newsLink" 
+        placeholder="https://example.com/news" 
+      />
+    </mat-form-field>
+
+    <app-tags-input
+      [tags]="tags"
+      (tagsChange)="tags = $event"
+      placeholder="Add a tag and press Enter"
+    ></app-tags-input>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions class="flex justify-end gap-2">
+  <button mat-button (click)="onCancel()" [disabled]="postsService.isLoading()">
+    Cancel
+  </button>
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="onPost()" 
+    [disabled]="postsService.isLoading()"
+  >
+    @if (postsService.isLoading()) {
+      Posting...
+    } @else {
+      Post
+    }
+  </button>
+</mat-dialog-actions>
+

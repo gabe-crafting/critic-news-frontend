@@ -1,121 +1,42 @@
-<div class="min-h-screen flex mx-auto" style="max-width: 1400px; margin-left: auto; margin-right: auto;">
-  <!-- Left Sidebar -->
-  <aside class="w-80 p-4 flex flex-col h-screen">
-    <div class="flex flex-col h-full gap-4">
-      <!-- App Title in Material Card -->
-      <mat-card class="w-full transparent-card">
-        <mat-card-content class="p-4">
-          <app-app-title></app-app-title>
-        </mat-card-content>
-      </mat-card>
+@if (authService.currentUser(); as user) {
+  <!-- Profile Header Component -->
+  <app-profile-header [profileUserId]="profileUserId"></app-profile-header>
 
-      <!-- Menu Items in Material Card -->
-      <mat-card class="w-full transparent-card">
-        <mat-card-content class="p-4 flex flex-col">
-          <app-menu></app-menu>
-        </mat-card-content>
-      </mat-card>
+  <!-- Feed Component - Full Width -->
+  <div class="flex-1 min-h-0 overflow-hidden relative">
+    <app-feed feedTitle="" [showSearch]="false">
+      <!-- Create Post Button (only for owner) -->
+      @if (isOwner) {
+        <div class="border-b border-gray-200 p-4 bg-white">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="openCreatePostDialog()"
+            class="w-full"
+          >
+            Create Post
+          </button>
+        </div>
+      }
 
-      <!-- Profile Info Card -->
-      <mat-card class="w-full transparent-card">
-        <mat-card-content class="p-4">
-          <app-user-info></app-user-info>
-        </mat-card-content>
-      </mat-card>
-    </div>
-  </aside>
-
-  <!-- Center Content Area -->
-  <main class="flex-1 flex flex-col h-screen overflow-hidden px-4 pt-4 relative">
-    @if (authService.currentUser(); as user) {
-      <!-- Profile Header Component -->
-      <app-profile-header [profileUserId]="profileUserId"></app-profile-header>
-
-      <!-- Feed Component - Full Width -->
-      <div class="flex-1 min-h-0 overflow-hidden">
-        <app-feed feedTitle="" [showSearch]="false">
-            <!-- Create Post Form (only for owner) -->
+      <!-- Posts List -->
+      <div>
+        @if (userPostsLoading()) {
+          <div class="p-8 text-center text-gray-500">Loading posts...</div>
+        } @else if (userPosts().length === 0) {
+          <div class="p-8 text-center text-gray-500">
             @if (isOwner) {
-              <div class="border-b border-gray-200 p-4 bg-white">
-                @if (!showCreateForm) {
-                  <button
-                    (click)="showCreateForm = true"
-                    class="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-gray-500"
-                  >
-                    What's happening?
-                  </button>
-                } @else {
-                  <div class="space-y-4">
-                    <div>
-                      <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                      <textarea
-                        id="description"
-                        [(ngModel)]="newPostDescription"
-                        placeholder="Share your thoughts..."
-                        rows="4"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                      ></textarea>
-                    </div>
-                    <div>
-                      <label for="newsLink" class="block text-sm font-medium text-gray-700 mb-1">News Link *</label>
-                      <input
-                        id="newsLink"
-                        type="url"
-                        [(ngModel)]="newPostNewsLink"
-                        placeholder="https://example.com/news"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div class="flex gap-2">
-                      <button
-                        (click)="createPost()"
-                        [disabled]="postsService.isLoading()"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        @if (postsService.isLoading()) {
-                          Posting...
-                        } @else {
-                          Post
-                        }
-                      </button>
-                      <button
-                        (click)="showCreateForm = false"
-                        [disabled]="postsService.isLoading()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
+              No posts yet. Create your first post!
+            } @else {
+              No posts yet.
             }
-
-            <!-- Posts List -->
-            <div>
-              @if (userPostsLoading()) {
-                <div class="p-8 text-center text-gray-500">Loading posts...</div>
-              } @else if (userPosts().length === 0) {
-                <div class="p-8 text-center text-gray-500">
-                  @if (isOwner) {
-                    No posts yet. Create your first post!
-                  } @else {
-                    No posts yet.
-                  }
-                </div>
-              } @else {
-                @for (post of userPosts(); track post.id) {
-                  <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)" (onUpdate)="onPostUpdate($event)"></app-post>
-                }
-              }
-            </div>
-          </app-feed>
+          </div>
+        } @else {
+          @for (post of userPosts(); track post.id) {
+            <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)" (onUpdate)="onPostUpdate($event)"></app-post>
+          }
+        }
       </div>
-    }
-  </main>
-
-  <!-- Right Sidebar - Tags -->
-  <aside class="w-80 p-4 flex flex-col h-screen">
-    <app-tags-sidebar></app-tags-sidebar>
-  </aside>
-</div>
+    </app-feed>
+  </div>
+}

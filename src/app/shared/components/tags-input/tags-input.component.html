@@ -1,0 +1,39 @@
+<div class="space-y-2">
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Tags</mat-label>
+    <input
+      matInput
+      type="text"
+      [(ngModel)]="tagInput"
+      (keydown)="onTagInputKeydown($event)"
+      [placeholder]="placeholder"
+    />
+    <button
+      mat-icon-button
+      matSuffix
+      type="button"
+      (click)="addTag()"
+      [disabled]="!tagInput.trim()"
+      aria-label="Add tag"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
+  </mat-form-field>
+  @if (tags.length > 0) {
+    <mat-chip-set>
+      @for (tag of tags; track tag) {
+        <mat-chip>
+          {{ tag }}
+          <button
+            matChipRemove
+            (click)="removeTag(tag)"
+            aria-label="Remove tag"
+          >
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </mat-chip>
+      }
+    </mat-chip-set>
+  }
+</div>
+

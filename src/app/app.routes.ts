@@ -4,6 +4,7 @@ import { AppPageComponent } from './pages/app/app.component';
 import { LoginComponent } from './pages/auth/login/login.component';
 import { SignupComponent } from './pages/auth/signup/signup.component';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { AppLayoutComponent } from './shared/layouts/app-layout/app-layout.component';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -20,18 +21,23 @@ export const routes: Routes = [
     component: SignupComponent
   },
   {
-    path: 'app',
-    component: AppPageComponent,
-    canActivate: [authGuard]
-  },
-  {
-    path: 'profile/:id',
-    component: ProfileComponent,
-    canActivate: [authGuard]
-  },
-  {
-    path: 'profile',
-    redirectTo: '/app',
-    pathMatch: 'full'
+    path: '',
+    component: AppLayoutComponent,
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'app',
+        component: AppPageComponent
+      },
+      {
+        path: 'profile/:id',
+        component: ProfileComponent
+      },
+      {
+        path: 'profile',
+        redirectTo: '/app',
+        pathMatch: 'full'
+      }
+    ]
   }
 ];

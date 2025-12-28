@@ -2,14 +2,12 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { AppTitleComponent } from '../../shared/components/app-title/app-title.component';
-import { MenuComponent } from '../../shared/components/menu/menu.component';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
 import { FeedComponent } from '../../shared/components/feed/feed.component';
 import { PostComponent } from '../../shared/components/post/post.component';
 import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
-import { TagsSidebarComponent } from '../../shared/components/tags-sidebar/tags-sidebar.component';
-import { UserInfoComponent } from '../../shared/components/user-info/user-info.component';
+import { CreatePostDialogComponent, CreatePostDialogData } from '../../shared/components/create-post-dialog/create-post-dialog.component';
 import { AuthService } from '../../core/services/auth.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { PostsService, Post } from '../../core/services/posts.service';
@@ -18,7 +16,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCardModule, AppTitleComponent, MenuComponent, FeedComponent, PostComponent, ProfileHeaderComponent, TagsSidebarComponent, UserInfoComponent],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, FeedComponent, PostComponent, ProfileHeaderComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -26,9 +24,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   profileUserId: string | null = null;
   userPosts = signal<Post[]>([]);
   userPostsLoading = signal(false);
-  newPostDescription = '';
-  newPostNewsLink = '';
-  showCreateForm = false;
   private routeSubscription?: Subscription;
 
   constructor(
@@ -36,7 +31,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     public profileService: ProfileService,
     public postsService: PostsService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -106,42 +102,26 @@ export class ProfileComponent implements OnInit, OnDestroy {
     );
   }
 
-  async createPost(): Promise<void> {
+  openCreatePostDialog(): void {
     if (!this.profileUserId || !this.isOwner) {
       return;
     }
 
-    if (!this.newPostDescription.trim() || !this.newPostNewsLink.trim()) {
-      alert('Please fill in description and news link');
-      return;
-    }
+    const dialogData: CreatePostDialogData = {
+      userId: this.profileUserId
+    };
 
-    // Validate URL format
-    try {
-      new URL(this.newPostNewsLink);
-    } catch {
-      alert('Please enter a valid news link URL');
-      return;
-    }
+    const dialogRef = this.dialog.open(CreatePostDialogComponent, {
+      data: dialogData,
+      width: '600px'
+    });
 
-    try {
-      const newPost = await this.postsService.createPost(this.profileUserId, {
-        description: this.newPostDescription.trim(),
-        news_link: this.newPostNewsLink.trim()
-      });
-
-      // Add the new post to the beginning of the user posts array
-      this.userPosts.update(posts => [newPost, ...posts]);
-
-      // Reset form
-      this.newPostDescription = '';
-      this.newPostNewsLink = '';
-      this.showCreateForm = false;
-    } catch (error: any) {
-      console.error('Failed to create post:', error);
-      const errorMessage = error?.message || error?.error?.message || 'Failed to create post. Please try again.';
-      alert(errorMessage);
-    }
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Add the new post to the beginning of the user posts array
+        this.userPosts.update(posts => [result, ...posts]);
+      }
+    });
   }
 
   get isOwner(): boolean {
