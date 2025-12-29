@@ -150,6 +150,81 @@ export class PostsService {
   }
 
   /**
+   * Get posts from users that the current user follows
+   */
+  async getPostsFromFollowing(followerId: string, limit = 50): Promise<Post[]> {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    try {
+      // First, get all users that the current user follows
+      const { data: followingData, error: followingError } = await this.supabase
+        .from('followers')
+        .select('user_id')
+        .eq('follower_id', followerId);
+
+      if (followingError) {
+        throw followingError;
+      }
+
+      if (!followingData || followingData.length === 0) {
+        this.posts.set([]);
+        this.isLoading.set(false);
+        return [];
+      }
+
+      // Extract user IDs
+      const followingUserIds = followingData.map(f => f.user_id);
+
+      // Get posts from those users
+      const { data: postsData, error: postsError } = await this.supabase
+        .from('posts')
+        .select('*')
+        .in('user_id', followingUserIds)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (postsError) {
+        throw postsError;
+      }
+
+      if (!postsData || postsData.length === 0) {
+        this.posts.set([]);
+        this.isLoading.set(false);
+        return [];
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(postsData.map(post => post.user_id))];
+
+      // Fetch user profiles
+      const { data: profilesData } = await this.supabase
+        .from('user_profiles')
+        .select('id, name, profile_picture_url')
+        .in('id', userIds);
+
+      // Create a map of user_id to profile
+      const profilesMap = new Map(
+        (profilesData || []).map(profile => [profile.id, profile])
+      );
+
+      // Combine posts with profiles
+      const postsWithProfiles = postsData.map(post => ({
+        ...post,
+        user_profiles: profilesMap.get(post.user_id) || null
+      }));
+
+      this.posts.set(postsWithProfiles);
+      this.isLoading.set(false);
+      return postsWithProfiles;
+    } catch (err: any) {
+      this.error.set(err.message || 'Failed to fetch following posts');
+      this.isLoading.set(false);
+      throw err;
+    }
+  }
+
+  /**
    * Create a new post
    */
   async createPost(userId: string, postData: CreatePostData): Promise<Post> {

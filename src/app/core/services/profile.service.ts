@@ -324,5 +324,129 @@ export class ProfileService {
       this.isLoading.set(false);
     }
   }
+
+  /**
+   * Follow a user
+   */
+  async followUser(userId: string, followerId: string): Promise<void> {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    try {
+      if (userId === followerId) {
+        throw new Error('Cannot follow yourself');
+      }
+
+      const { error } = await this.supabase
+        .from('followers')
+        .insert({
+          user_id: userId,
+          follower_id: followerId
+        });
+
+      if (error) {
+        // If it's a unique constraint violation, user is already following
+        if (error.code === '23505') {
+          return; // Already following, no error
+        }
+        throw error;
+      }
+    } catch (err: any) {
+      this.error.set(err.message || 'Failed to follow user');
+      throw err;
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Unfollow a user
+   */
+  async unfollowUser(userId: string, followerId: string): Promise<void> {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    try {
+      const { error } = await this.supabase
+        .from('followers')
+        .delete()
+        .eq('user_id', userId)
+        .eq('follower_id', followerId);
+
+      if (error) {
+        throw error;
+      }
+    } catch (err: any) {
+      this.error.set(err.message || 'Failed to unfollow user');
+      throw err;
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Check if current user is following a user
+   */
+  async isFollowing(userId: string, followerId: string): Promise<boolean> {
+    try {
+      const { data, error } = await this.supabase
+        .from('followers')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('follower_id', followerId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return !!data;
+    } catch (err: any) {
+      console.error('Failed to check follow status:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Get followers count for a user
+   */
+  async getFollowersCount(userId: string): Promise<number> {
+    try {
+      const { count, error } = await this.supabase
+        .from('followers')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      if (error) {
+        throw error;
+      }
+
+      return count || 0;
+    } catch (err: any) {
+      console.error('Failed to get followers count:', err);
+      return 0;
+    }
+  }
+
+  /**
+   * Get following count for a user
+   */
+  async getFollowingCount(userId: string): Promise<number> {
+    try {
+      const { count, error } = await this.supabase
+        .from('followers')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', userId);
+
+      if (error) {
+        throw error;
+      }
+
+      return count || 0;
+    } catch (err: any) {
+      console.error('Failed to get following count:', err);
+      return 0;
+    }
+  }
 }
 

@@ -1,4 +1,4 @@
-import { Component, Input, effect, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, effect, OnChanges, SimpleChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -16,6 +16,11 @@ import { EditProfileDialogComponent, EditProfileDialogData } from '../edit-profi
 export class ProfileHeaderComponent implements OnChanges {
   @Input() profileUserId: string | null = null;
 
+  isFollowingUser = signal<boolean>(false);
+  followersCount = signal<number>(0);
+  followingCount = signal<number>(0);
+  isCheckingFollowStatus = signal<boolean>(false);
+
 
   constructor(
     public profileService: ProfileService,
@@ -28,6 +33,43 @@ export class ProfileHeaderComponent implements OnChanges {
       this.profileService.getProfile(this.profileUserId).catch(error => {
         console.error('Failed to load profile:', error);
       });
+      this.loadFollowStatus();
+      this.loadFollowCounts();
+    }
+  }
+
+  async loadFollowStatus(): Promise<void> {
+    if (!this.profileUserId) return;
+
+    const currentUser = this.authService.currentUser();
+    if (!currentUser || currentUser.id === this.profileUserId) {
+      this.isFollowingUser.set(false);
+      return;
+    }
+
+    try {
+      const following = await this.profileService.isFollowing(
+        this.profileUserId,
+        currentUser.id
+      );
+      this.isFollowingUser.set(following);
+    } catch (error) {
+      console.error('Failed to load follow status:', error);
+    }
+  }
+
+  async loadFollowCounts(): Promise<void> {
+    if (!this.profileUserId) return;
+
+    try {
+      const [followers, following] = await Promise.all([
+        this.profileService.getFollowersCount(this.profileUserId),
+        this.profileService.getFollowingCount(this.profileUserId)
+      ]);
+      this.followersCount.set(followers);
+      this.followingCount.set(following);
+    } catch (error) {
+      console.error('Failed to load follow counts:', error);
     }
   }
 
@@ -132,6 +174,34 @@ export class ProfileHeaderComponent implements OnChanges {
     } catch (error) {
       console.error('Failed to delete profile picture:', error);
       alert('Failed to delete profile picture. Please try again.');
+    }
+  }
+
+  async toggleFollow(): Promise<void> {
+    if (!this.profileUserId) return;
+
+    const currentUser = this.authService.currentUser();
+    if (!currentUser) return;
+
+    if (this.isCheckingFollowStatus()) return;
+
+    this.isCheckingFollowStatus.set(true);
+
+    try {
+      if (this.isFollowingUser()) {
+        await this.profileService.unfollowUser(this.profileUserId, currentUser.id);
+        this.isFollowingUser.set(false);
+        this.followersCount.update(count => Math.max(0, count - 1));
+      } else {
+        await this.profileService.followUser(this.profileUserId, currentUser.id);
+        this.isFollowingUser.set(true);
+        this.followersCount.update(count => count + 1);
+      }
+    } catch (error: any) {
+      console.error('Failed to toggle follow:', error);
+      alert(error.message || 'Failed to update follow status. Please try again.');
+    } finally {
+      this.isCheckingFollowStatus.set(false);
     }
   }
 }

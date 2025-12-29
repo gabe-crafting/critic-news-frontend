@@ -5,6 +5,7 @@ import { LoginComponent } from './pages/auth/login/login.component';
 import { SignupComponent } from './pages/auth/signup/signup.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { DiscoverJunkiesComponent } from './pages/discover-junkies/discover-junkies.component';
+import { FollowingComponent } from './pages/following/following.component';
 import { AppLayoutComponent } from './shared/layouts/app-layout/app-layout.component';
 import { authGuard } from './core/guards/auth.guard';
 
@@ -42,6 +43,10 @@ export const routes: Routes = [
       {
         path: 'discover',
         component: DiscoverJunkiesComponent
+      },
+      {
+        path: 'follow',
+        component: FollowingComponent
       }
     ]
   }

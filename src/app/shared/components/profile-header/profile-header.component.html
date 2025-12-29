@@ -67,11 +67,36 @@
             >
               Edit
             </button>
+          } @else if (authService.currentUser()) {
+            <button
+              (click)="toggleFollow()"
+              [disabled]="isCheckingFollowStatus()"
+              [class]="isFollowingUser() 
+                ? 'px-4 py-1 text-sm text-white bg-white/20 hover:bg-white/30 rounded-md transition-colors backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                : 'px-4 py-1 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-md'"
+            >
+              @if (isCheckingFollowStatus()) {
+                ...
+              } @else if (isFollowingUser()) {
+                Following
+              } @else {
+                Follow
+              }
+            </button>
           }
         </div>
         <p class="text-white/90 text-base leading-relaxed max-w-2xl drop-shadow-md">
           {{ displayDescription }}
         </p>
+        <!-- Follow stats -->
+        <div class="flex items-center gap-4 text-white/80 text-sm mt-2">
+          <span>
+            <span class="font-semibold">{{ followersCount() }}</span> followers
+          </span>
+          <span>
+            <span class="font-semibold">{{ followingCount() }}</span> following
+          </span>
+        </div>
       </div>
     </div>
   </div>

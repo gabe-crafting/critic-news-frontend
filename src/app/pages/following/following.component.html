@@ -1,0 +1,25 @@
+<app-feed 
+  [showSearch]="true"
+  (searchChange)="onSearchChange($event)"
+>
+  <!-- Posts List -->
+  <div>
+    @if (isLoadingPosts() && followingPosts().length === 0) {
+      <div class="p-8 text-center text-gray-500">Loading posts...</div>
+    } @else if (followingPosts().length === 0) {
+      <div class="p-8 text-center text-gray-500">
+        No posts from people you follow yet. Start following users to see their posts here!
+      </div>
+    } @else {
+      @for (post of filteredPosts(); track post.id) {
+        <app-post 
+          [post]="post" 
+          [showDelete]="true" 
+          (onDelete)="deletePost($event)" 
+          (onUpdate)="onPostUpdate($event)">
+        </app-post>
+      }
+    }
+  </div>
+</app-feed>
+
