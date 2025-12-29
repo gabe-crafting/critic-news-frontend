@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-homepage',
@@ -8,6 +9,21 @@ import { RouterLink } from '@angular/router';
   templateUrl: './homepage.component.html',
   styleUrl: './homepage.component.css'
 })
-export class HomepageComponent {}
+export class HomepageComponent implements OnInit {
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
+
+  async ngOnInit(): Promise<void> {
+    // Wait for auth to initialize
+    await this.authService.waitForInit();
+    
+    // If user is already logged in, redirect to app
+    if (this.authService.isAuthenticated()) {
+      this.router.navigate(['/app']);
+    }
+  }
+}
 
 

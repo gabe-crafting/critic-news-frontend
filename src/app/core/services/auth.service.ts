@@ -36,15 +36,42 @@ export class AuthService {
   }
 
   private async initAuth(): Promise<void> {
-    // Get initial session
+    // Get initial session (this will automatically handle email callback hash fragments)
     const { data: { session } } = await this.supabase.auth.getSession();
     this.session.set(session);
     this.currentUser.set(session?.user ?? null);
 
-    // Listen for auth changes
-    this.supabase.auth.onAuthStateChange((_event, session) => {
+    // Check if we have hash fragments from email callback and user is now authenticated
+    if (session && typeof window !== 'undefined') {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      if (hashParams.get('access_token')) {
+        // Clear the hash from URL and redirect to app
+        window.history.replaceState(null, '', window.location.pathname);
+        this.router.navigate(['/app']);
+      }
+    }
+
+    // Listen for auth changes (including email callbacks)
+    this.supabase.auth.onAuthStateChange((event, session) => {
       this.session.set(session);
       this.currentUser.set(session?.user ?? null);
+      
+      // If user just signed in via email callback, redirect to app
+      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        // Check if we're coming from an email callback
+        if (typeof window !== 'undefined') {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          if (hashParams.get('access_token')) {
+            // Clear the hash from URL
+            window.history.replaceState(null, '', window.location.pathname);
+            // Only redirect if we're not already on a protected route
+            const currentPath = window.location.pathname;
+            if (currentPath === '/' || currentPath === '/login' || currentPath === '/signup') {
+              this.router.navigate(['/app']);
+            }
+          }
+        }
+      }
     });
   }
 
@@ -111,19 +138,29 @@ export class AuthService {
     this.error.set(null);
 
     try {
-      const { error } = await this.supabase.auth.signOut();
+      // Check if there's an active session before attempting to sign out
+      const currentSession = this.session();
+      
+      if (currentSession) {
+        // Only call signOut if we have a valid session
+        const { error } = await this.supabase.auth.signOut();
 
-      if (error) {
-        throw error;
+        if (error) {
+          // If signOut fails, still clear local state and redirect
+          console.warn('Sign out error (clearing local state anyway):', error);
+        }
       }
 
+      // Always clear local state and redirect, even if there was no session
       this.session.set(null);
       this.currentUser.set(null);
       this.router.navigate(['/']);
     } catch (err) {
-      const authError = err as AuthError;
-      this.error.set(authError.message || 'An error occurred during sign out');
-      throw err;
+      // Even if there's an error, clear local state and redirect
+      console.warn('Sign out error (clearing local state anyway):', err);
+      this.session.set(null);
+      this.currentUser.set(null);
+      this.router.navigate(['/']);
     } finally {
       this.isLoading.set(false);
     }
