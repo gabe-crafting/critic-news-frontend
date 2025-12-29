@@ -42,9 +42,8 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
-# Environment files (with actual secrets)
-src/environments/environment.ts
-# Note: environment.prod.ts is committed because it uses process.env
+# Environment files - both environment.ts and environment.prod.ts are now committed
+# because they use process.env instead of hardcoded secrets
 # But keep example files
 !src/environments/environment.example.ts
 !src/environments/environment.prod.example.ts
