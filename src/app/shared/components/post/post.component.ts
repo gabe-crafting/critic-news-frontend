@@ -1,8 +1,10 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { Post } from '../../../core/services/posts.service';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { Post, PostsService } from '../../../core/services/posts.service';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { EditPostDialogComponent, EditPostDialogData } from '../edit-post-dialog/edit-post-dialog.component';
@@ -10,21 +12,36 @@ import { EditPostDialogComponent, EditPostDialogData } from '../edit-post-dialog
 @Component({
   selector: 'app-post',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatDialogModule],
+  imports: [CommonModule, RouterLink, MatDialogModule, MatIconModule, MatButtonModule],
   templateUrl: './post.component.html',
   styleUrl: './post.component.css'
 })
-export class PostComponent {
+export class PostComponent implements OnInit {
   @Input() post!: Post;
   @Input() showDelete = false;
+  @Input() showShare = true;
   @Output() onDelete = new EventEmitter<string>();
   @Output() onUpdate = new EventEmitter<Post>();
+
+  isShared = signal(false);
+  isSharing = signal(false);
 
   constructor(
     public profileService: ProfileService,
     public authService: AuthService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private postsService: PostsService
   ) {}
+
+  async ngOnInit(): Promise<void> {
+    const user = this.authService.currentUser();
+    if (user) {
+      // Check if current user has shared this post
+      // Use original_post_id if it's a shared post, otherwise use post.id
+      const postIdToCheck = this.post.original_post_id || this.post.id;
+      this.isShared.set(await this.postsService.hasSharedPost(user.id, postIdToCheck));
+    }
+  }
 
   get isOwner(): boolean {
     const currentUser = this.authService.currentUser();
@@ -36,7 +53,16 @@ export class PostComponent {
   }
 
   get canEdit(): boolean {
-    return this.isOwner;
+    return this.isOwner && !this.post.shared_by; // Can't edit shared posts
+  }
+
+  get canShare(): boolean {
+    const user = this.authService.currentUser();
+    return !!user && !this.isOwner && this.showShare; // Can't share own posts
+  }
+
+  get isSharedPost(): boolean {
+    return !!this.post.shared_by;
   }
 
   getUserName(): string {
@@ -112,6 +138,38 @@ export class PostComponent {
         this.onUpdate.emit(result);
       }
     });
+  }
+
+  async toggleShare(): Promise<void> {
+    const user = this.authService.currentUser();
+    if (!user) {
+      return;
+    }
+
+    // Use original_post_id if it's a shared post, otherwise use post.id
+    const postIdToShare = this.post.original_post_id || this.post.id;
+
+    this.isSharing.set(true);
+    try {
+      if (this.isShared()) {
+        await this.postsService.unsharePost(user.id, postIdToShare);
+        this.isShared.set(false);
+      } else {
+        await this.postsService.sharePost(user.id, postIdToShare);
+        this.isShared.set(true);
+      }
+      // Emit update to refresh profile if needed
+      this.onUpdate.emit(this.post);
+    } catch (error) {
+      console.error('Failed to toggle share:', error);
+      alert('Failed to share/unshare post. Please try again.');
+    } finally {
+      this.isSharing.set(false);
+    }
+  }
+
+  getSharedByUserName(): string {
+    return this.post.shared_by?.name || 'User';
   }
 }
 

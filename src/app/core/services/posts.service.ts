@@ -14,6 +14,12 @@ export interface Post {
     name: string | null;
     profile_picture_url: string | null;
   } | null;
+  shared_by?: {
+    id: string;
+    name: string | null;
+    profile_picture_url: string | null;
+  } | null;
+  original_post_id?: string | null;
 }
 
 export interface CreatePostData {
@@ -110,7 +116,7 @@ export class PostsService {
     this.error.set(null);
 
     try {
-      // Get posts for the user
+      // Get posts created by the user
       const { data: postsData, error: postsError } = await this.supabase
         .from('posts')
         .select('*')
@@ -122,26 +128,103 @@ export class PostsService {
         throw postsError;
       }
 
-      if (!postsData || postsData.length === 0) {
-        this.isLoading.set(false);
-        return [];
+      // Get posts shared by the user
+      const { data: sharesData, error: sharesError } = await this.supabase
+        .from('post_shares')
+        .select('post_id, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (sharesError) {
+        throw sharesError;
       }
 
-      // Fetch user profile (may not exist, so use maybeSingle())
-      const { data: profileData } = await this.supabase
-        .from('user_profiles')
-        .select('id, name, profile_picture_url')
-        .eq('id', userId)
-        .maybeSingle();
+      // Process regular posts
+      const regularPosts: Post[] = [];
+      if (postsData && postsData.length > 0) {
+        // Fetch user profile (may not exist, so use maybeSingle())
+        const { data: profileData } = await this.supabase
+          .from('user_profiles')
+          .select('id, name, profile_picture_url')
+          .eq('id', userId)
+          .maybeSingle();
 
-      // Combine posts with profile
-      const postsWithProfile = postsData.map(post => ({
-        ...post,
-        user_profiles: profileData || null
-      }));
+        // Combine posts with profile
+        const postsWithProfile = postsData.map(post => ({
+          ...post,
+          user_profiles: profileData || null
+        }));
+        regularPosts.push(...postsWithProfile);
+      }
+
+      // Process shared posts
+      const sharedPosts: Post[] = [];
+      if (sharesData && sharesData.length > 0) {
+        // Get post IDs from shares
+        const postIds = sharesData.map(share => share.post_id);
+        
+        // Fetch the original posts
+        const { data: originalPostsData, error: originalPostsError } = await this.supabase
+          .from('posts')
+          .select('*')
+          .in('id', postIds);
+
+        if (originalPostsError) {
+          throw originalPostsError;
+        }
+
+        // Get user IDs from original posts
+        const originalUserIds = [...new Set((originalPostsData || []).map(p => p.user_id))];
+        
+        // Fetch user profiles for original post authors
+        const { data: originalProfilesData } = await this.supabase
+          .from('user_profiles')
+          .select('id, name, profile_picture_url')
+          .in('id', originalUserIds);
+
+        // Create a map of user_id to profile
+        const originalProfilesMap = new Map(
+          (originalProfilesData || []).map(profile => [profile.id, profile])
+        );
+
+        // Get current user profile for shared_by
+        const { data: sharerProfile } = await this.supabase
+          .from('user_profiles')
+          .select('id, name, profile_picture_url')
+          .eq('id', userId)
+          .maybeSingle();
+
+        // Create a map of post_id to share data
+        const sharesMap = new Map(sharesData.map(share => [share.post_id, share]));
+
+        // Combine original posts with share data
+        for (const originalPost of originalPostsData || []) {
+          const share = sharesMap.get(originalPost.id);
+          if (share) {
+            sharedPosts.push({
+              ...originalPost,
+              original_post_id: originalPost.id,
+              id: `share-${share.post_id}-${userId}`, // Unique ID for shared post
+              created_at: share.created_at, // Use share date
+              user_profiles: originalProfilesMap.get(originalPost.user_id) || null,
+              shared_by: sharerProfile ? {
+                id: sharerProfile.id,
+                name: sharerProfile.name,
+                profile_picture_url: sharerProfile.profile_picture_url
+              } : null
+            });
+          }
+        }
+      }
+
+      // Combine and sort by created_at (most recent first)
+      const allPosts = [...regularPosts, ...sharedPosts].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ).slice(0, limit);
 
       this.isLoading.set(false);
-      return postsWithProfile;
+      return allPosts;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to fetch user posts');
       this.isLoading.set(false);
@@ -379,6 +462,70 @@ export class PostsService {
     } catch (err: any) {
       console.error('Failed to fetch tags:', err);
       return [];
+    }
+  }
+
+  /**
+   * Share a post to user's profile
+   */
+  async sharePost(userId: string, postId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('post_shares')
+        .insert({
+          user_id: userId,
+          post_id: postId
+        });
+
+      if (error) {
+        throw error;
+      }
+    } catch (err: any) {
+      console.error('Failed to share post:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Unshare a post from user's profile
+   */
+  async unsharePost(userId: string, postId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('post_shares')
+        .delete()
+        .eq('user_id', userId)
+        .eq('post_id', postId);
+
+      if (error) {
+        throw error;
+      }
+    } catch (err: any) {
+      console.error('Failed to unshare post:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Check if a user has shared a post
+   */
+  async hasSharedPost(userId: string, postId: string): Promise<boolean> {
+    try {
+      const { data, error } = await this.supabase
+        .from('post_shares')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('post_id', postId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return !!data;
+    } catch (err: any) {
+      console.error('Failed to check if post is shared:', err);
+      return false;
     }
   }
 }

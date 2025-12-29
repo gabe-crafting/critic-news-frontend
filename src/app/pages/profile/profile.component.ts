@@ -145,11 +145,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  onPostUpdate(updatedPost: Post): void {
-    // Update the post in the local array
-    this.userPosts.update(posts =>
-      posts.map(post => (post.id === updatedPost.id ? updatedPost : post))
-    );
+  async onPostUpdate(updatedPost: Post): Promise<void> {
+    // Reload posts if it's a share/unshare action to show the new shared post
+    if (this.profileUserId) {
+      await this.loadUserPosts(this.profileUserId);
+    } else {
+      // Otherwise just update the post in the local array
+      this.userPosts.update(posts =>
+        posts.map(post => (post.id === updatedPost.id ? updatedPost : post))
+      );
+    }
   }
 
   async onSearchChange(filters: SearchFilters): Promise<void> {

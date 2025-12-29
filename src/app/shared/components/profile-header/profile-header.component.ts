@@ -2,6 +2,7 @@ import { Component, Input, effect, OnChanges, SimpleChanges, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatCardModule } from '@angular/material/card';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { EditProfileDialogComponent, EditProfileDialogData } from '../edit-profile-dialog/edit-profile-dialog.component';
@@ -9,7 +10,7 @@ import { EditProfileDialogComponent, EditProfileDialogData } from '../edit-profi
 @Component({
   selector: 'app-profile-header',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatCardModule],
   templateUrl: './profile-header.component.html',
   styleUrl: './profile-header.component.css'
 })

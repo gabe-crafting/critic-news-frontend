@@ -1,104 +1,104 @@
-<!-- Cover/Banner Area with Centered Profile Info -->
-<div class="h-64 bg-gradient-to-r from-sky-300 via-blue-400 to-purple-500 shrink-0 relative flex items-center justify-center">
-  <!-- Profile Photo and Info - Centered on Banner -->
-  <div class="flex flex-col items-center gap-4 relative z-10">
-    <!-- Profile Photo -->
-    <div class="relative group">
-      <div class="w-32 h-32 rounded-full bg-white p-0.5 border-4 border-white shadow-lg overflow-hidden relative">
-        @if (profilePictureUrl) {
-          <img
-            [src]="profilePictureUrl"
-            [alt]="displayName"
-            class="w-full h-full object-cover rounded-full"
-          />
-        } @else {
-          <div class="w-full h-full rounded-full bg-gray-200 flex items-center justify-center">
-            <span class="text-5xl font-semibold text-gray-700">
-              {{ profileInitial }}
-            </span>
-          </div>
-        }
-        <!-- Upload overlay button - only visible on hover and if owner -->
-        @if (isOwner) {
-          <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-50 rounded-full flex items-center justify-center transition-opacity cursor-pointer pointer-events-none group-hover:pointer-events-auto">
-            <label class="cursor-pointer pointer-events-auto">
-              <input
-                type="file"
-                accept="image/*"
-                (change)="onFileSelected($event)"
-                [disabled]="profileService.isLoading()"
-                class="hidden"
-              />
-              <span class="text-white opacity-0 group-hover:opacity-100 text-sm font-medium px-3 py-1 bg-blue-600 rounded-md hover:bg-blue-700 transition-opacity">
-                @if (profileService.isLoading()) {
-                  Uploading...
-                } @else {
-                  Change Photo
-                }
+<!-- Profile Info Card -->
+<mat-card class="w-full transparent-card mb-4">
+  <mat-card-content class="p-6">
+    <div class="flex flex-col items-center gap-4">
+      <!-- Profile Photo -->
+      <div class="relative group">
+        <div class="w-32 h-32 rounded-full bg-gray-200 p-0.5 border-4 border-gray-300 shadow-lg overflow-hidden relative">
+          @if (profilePictureUrl) {
+            <img
+              [src]="profilePictureUrl"
+              [alt]="displayName"
+              class="w-full h-full object-cover rounded-full"
+            />
+          } @else {
+            <div class="w-full h-full rounded-full bg-gray-200 flex items-center justify-center">
+              <span class="text-5xl font-semibold text-gray-700">
+                {{ profileInitial }}
               </span>
-            </label>
-          </div>
-        }
-      </div>
-      <!-- Delete button (only show if picture exists and user is owner) -->
-      @if (profilePictureUrl && isOwner) {
-              <button
-                (click)="deleteProfilePicture()"
-                [disabled]="profileService.isLoading()"
-                class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                title="Delete profile picture"
-              >
-                Delete
-              </button>
-      }
-    </div>
-
-    <!-- Name and Description - Centered -->
-    <div class="text-center px-6 w-full">
-      <div class="flex flex-col items-center gap-2">
-        <div class="flex items-center gap-3">
-          <h1 class="text-3xl font-bold text-white drop-shadow-lg">
-            {{ displayName }}
-          </h1>
+            </div>
+          }
+          <!-- Upload overlay button - only visible on hover and if owner -->
           @if (isOwner) {
-            <button
-              (click)="openEditDialog()"
-              class="px-3 py-1 text-sm text-white bg-white/20 hover:bg-white/30 rounded-md transition-colors backdrop-blur-sm"
-            >
-              Edit
-            </button>
-          } @else if (authService.currentUser()) {
-            <button
-              (click)="toggleFollow()"
-              [disabled]="isCheckingFollowStatus()"
-              [class]="isFollowingUser() 
-                ? 'px-4 py-1 text-sm text-white bg-white/20 hover:bg-white/30 rounded-md transition-colors backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                : 'px-4 py-1 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-md'"
-            >
-              @if (isCheckingFollowStatus()) {
-                ...
-              } @else if (isFollowingUser()) {
-                Following
-              } @else {
-                Follow
-              }
-            </button>
+            <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-50 rounded-full flex items-center justify-center transition-opacity cursor-pointer pointer-events-none group-hover:pointer-events-auto">
+              <label class="cursor-pointer pointer-events-auto">
+                <input
+                  type="file"
+                  accept="image/*"
+                  (change)="onFileSelected($event)"
+                  [disabled]="profileService.isLoading()"
+                  class="hidden"
+                />
+                <span class="text-white opacity-0 group-hover:opacity-100 text-sm font-medium px-3 py-1 bg-blue-600 rounded-md hover:bg-blue-700 transition-opacity">
+                  @if (profileService.isLoading()) {
+                    Uploading...
+                  } @else {
+                    Change Photo
+                  }
+                </span>
+              </label>
+            </div>
           }
         </div>
-        <p class="text-white/90 text-base leading-relaxed max-w-2xl drop-shadow-md">
-          {{ displayDescription }}
-        </p>
-        <!-- Follow stats -->
-        <div class="flex items-center gap-4 text-white/80 text-sm mt-2">
-          <span>
-            <span class="font-semibold">{{ followersCount() }}</span> followers
-          </span>
-          <span>
-            <span class="font-semibold">{{ followingCount() }}</span> following
-          </span>
+        <!-- Delete button (only show if picture exists and user is owner) -->
+        @if (profilePictureUrl && isOwner) {
+          <button
+            (click)="deleteProfilePicture()"
+            [disabled]="profileService.isLoading()"
+            class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            title="Delete profile picture"
+          >
+            Delete
+          </button>
+        }
+      </div>
+
+      <!-- Name and Description - Centered -->
+      <div class="text-center px-6 w-full">
+        <div class="flex flex-col items-center gap-2">
+          <div class="flex items-center gap-3">
+            <h1 class="text-3xl font-bold text-gray-900">
+              {{ displayName }}
+            </h1>
+            @if (isOwner) {
+              <button
+                (click)="openEditDialog()"
+                class="px-3 py-1 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Edit
+              </button>
+            } @else if (authService.currentUser()) {
+              <button
+                (click)="toggleFollow()"
+                [disabled]="isCheckingFollowStatus()"
+                [class]="isFollowingUser() 
+                  ? 'px-4 py-1 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  : 'px-4 py-1 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md'"
+              >
+                @if (isCheckingFollowStatus()) {
+                  ...
+                } @else if (isFollowingUser()) {
+                  Following
+                } @else {
+                  Follow
+                }
+              </button>
+            }
+          </div>
+          <p class="text-gray-700 text-base leading-relaxed max-w-2xl">
+            {{ displayDescription }}
+          </p>
+          <!-- Follow stats -->
+          <div class="flex items-center gap-4 text-gray-600 text-sm mt-2">
+            <span>
+              <span class="font-semibold">{{ followersCount() }}</span> followers
+            </span>
+            <span>
+              <span class="font-semibold">{{ followingCount() }}</span> following
+            </span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-
+  </mat-card-content>
+</mat-card>
