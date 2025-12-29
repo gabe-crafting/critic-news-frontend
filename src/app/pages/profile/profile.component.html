@@ -1,42 +1,29 @@
 @if (authService.currentUser(); as user) {
-  <!-- Profile Header Component -->
-  <app-profile-header [profileUserId]="profileUserId"></app-profile-header>
+<!-- Profile Header Component -->
+<app-profile-header [profileUserId]="profileUserId"></app-profile-header>
 
-  <!-- Feed Component - Full Width -->
-  <div class="flex-1 min-h-0 overflow-hidden relative">
-    <app-feed feedTitle="" [showSearch]="true" (searchChange)="onSearchChange($event)">
-      <!-- Create Post Button (only for owner) -->
-      @if (isOwner) {
-        <div class="border-b border-gray-200 p-4">
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="openCreatePostDialog()"
-            class="w-full"
-          >
-            Create Post
-          </button>
-        </div>
-      }
-
-      <!-- Posts List -->
-      <div>
-        @if (userPostsLoading()) {
-          <div class="p-8 text-center text-gray-500">Loading posts...</div>
-        } @else if (userPosts().length === 0) {
-          <div class="p-8 text-center text-gray-500">
-            @if (isOwner) {
-              No posts yet. Create your first post!
-            } @else {
-              No posts yet.
-            }
-          </div>
-              } @else {
-                @for (post of filteredPosts(); track post.id) {
-                  <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)" (onUpdate)="onPostUpdate($event)"></app-post>
-                }
-              }
+<!-- Feed Component - Full Width -->
+<div class="flex-1 min-h-0 overflow-hidden relative">
+  <app-feed feedTitle="" [showSearch]="true" (searchChange)="onSearchChange($event)">
+    <!-- Posts List -->
+    <div>
+      @if (userPostsLoading()) {
+      <div class="p-8 text-center text-gray-500">Loading posts...</div>
+      } @else if (userPosts().length === 0) {
+      <div class="p-8 text-center text-gray-500">
+        @if (isOwner) {
+        No posts yet. Create your first post!
+        } @else {
+        No posts yet.
+        }
       </div>
-    </app-feed>
-  </div>
+      } @else {
+      @for (post of filteredPosts(); track post.id) {
+      <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)"
+        (onUpdate)="onPostUpdate($event)"></app-post>
+      }
+      }
+    </div>
+  </app-feed>
+</div>
 }

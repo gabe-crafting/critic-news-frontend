@@ -2,12 +2,9 @@ import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
 import { FeedComponent } from '../../shared/components/feed/feed.component';
 import { PostComponent } from '../../shared/components/post/post.component';
 import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
-import { CreatePostDialogComponent, CreatePostDialogData } from '../../shared/components/create-post-dialog/create-post-dialog.component';
 import { SearchFilters } from '../../shared/components/search-panel/search-panel.component';
 import { AuthService } from '../../core/services/auth.service';
 import { ProfileService } from '../../core/services/profile.service';
@@ -17,7 +14,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, FeedComponent, PostComponent, ProfileHeaderComponent],
+  imports: [CommonModule, FormsModule, FeedComponent, PostComponent, ProfileHeaderComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -65,8 +62,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     public profileService: ProfileService,
     public postsService: PostsService,
     private route: ActivatedRoute,
-    private router: Router,
-    private dialog: MatDialog
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -138,28 +134,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   onSearchChange(filters: SearchFilters): void {
     this.searchFilters.set(filters);
-  }
-
-  openCreatePostDialog(): void {
-    if (!this.profileUserId || !this.isOwner) {
-      return;
-    }
-
-    const dialogData: CreatePostDialogData = {
-      userId: this.profileUserId
-    };
-
-    const dialogRef = this.dialog.open(CreatePostDialogComponent, {
-      data: dialogData,
-      width: '600px'
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        // Add the new post to the beginning of the user posts array
-        this.userPosts.update(posts => [result, ...posts]);
-      }
-    });
   }
 
   get isOwner(): boolean {

@@ -1,3 +1,16 @@
+<!-- Create Post Button -->
+@if (authService.currentUser()) {
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="openCreatePostDialog()"
+    class="w-full mb-4"
+  >
+    Create Post
+  </button>
+}
+
+<!-- Usually Viewed Tags -->
 <mat-card class="w-full transparent-card">
   <mat-card-header>
     <mat-card-title class="text-base font-medium">Usually Viewed Tags</mat-card-title>
