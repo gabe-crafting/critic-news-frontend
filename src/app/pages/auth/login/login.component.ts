@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -11,7 +11,7 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   errorMessage = signal<string | null>(null);
   isLoading = signal<boolean>(false);
@@ -25,6 +25,16 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
+  }
+
+  async ngOnInit(): Promise<void> {
+    // Wait for auth to initialize
+    await this.authService.waitForInit();
+    
+    // If user is already logged in, redirect to app
+    if (this.authService.isAuthenticated()) {
+      this.router.navigate(['/app']);
+    }
   }
 
   async onSubmit(): Promise<void> {

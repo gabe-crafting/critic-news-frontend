@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -22,7 +22,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
   templateUrl: './signup.component.html',
   styleUrl: './signup.component.css'
 })
-export class SignupComponent {
+export class SignupComponent implements OnInit {
   signupForm: FormGroup;
   errorMessage = signal<string | null>(null);
   isLoading = signal<boolean>(false);
@@ -40,6 +40,16 @@ export class SignupComponent {
       },
       { validators: passwordMatchValidator }
     );
+  }
+
+  async ngOnInit(): Promise<void> {
+    // Wait for auth to initialize
+    await this.authService.waitForInit();
+    
+    // If user is already logged in, redirect to app
+    if (this.authService.isAuthenticated()) {
+      this.router.navigate(['/app']);
+    }
   }
 
   async onSubmit(): Promise<void> {
