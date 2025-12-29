@@ -448,5 +448,31 @@ export class ProfileService {
       return 0;
     }
   }
+
+  /**
+   * Get follow status for multiple users (which ones the current user follows)
+   */
+  async getFollowStatusForUsers(userIds: string[], followerId: string): Promise<Set<string>> {
+    if (userIds.length === 0) {
+      return new Set();
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .from('followers')
+        .select('user_id')
+        .eq('follower_id', followerId)
+        .in('user_id', userIds);
+
+      if (error) {
+        throw error;
+      }
+
+      return new Set((data || []).map(f => f.user_id));
+    } catch (err: any) {
+      console.error('Failed to get follow status:', err);
+      return new Set();
+    }
+  }
 }
 
