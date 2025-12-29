@@ -44,7 +44,7 @@ Thumbs.db
 
 # Environment files (with actual secrets)
 src/environments/environment.ts
-src/environments/environment.prod.ts
+# Note: environment.prod.ts is committed because it uses process.env
 # But keep example files
 !src/environments/environment.example.ts
 !src/environments/environment.prod.example.ts
