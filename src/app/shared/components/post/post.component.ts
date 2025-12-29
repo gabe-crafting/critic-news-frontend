@@ -1,16 +1,16 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Post, PostsService, CreatePostData } from '../../../core/services/posts.service';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { Post } from '../../../core/services/posts.service';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { TagsInputComponent } from '../tags-input/tags-input.component';
+import { EditPostDialogComponent, EditPostDialogData } from '../edit-post-dialog/edit-post-dialog.component';
 
 @Component({
   selector: 'app-post',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TagsInputComponent],
+  imports: [CommonModule, RouterLink, MatDialogModule],
   templateUrl: './post.component.html',
   styleUrl: './post.component.css'
 })
@@ -20,15 +20,10 @@ export class PostComponent {
   @Output() onDelete = new EventEmitter<string>();
   @Output() onUpdate = new EventEmitter<Post>();
 
-  isEditing = false;
-  editedDescription = '';
-  editedNewsLink = '';
-  editedTags: string[] = [];
-
   constructor(
     public profileService: ProfileService,
     public authService: AuthService,
-    public postsService: PostsService
+    private dialog: MatDialog
   ) {}
 
   get isOwner(): boolean {
@@ -102,49 +97,21 @@ export class PostComponent {
     }
   }
 
-  startEditing(): void {
-    this.editedDescription = this.post.description;
-    this.editedNewsLink = this.post.news_link;
-    this.editedTags = this.post.tags ? [...this.post.tags] : [];
-    this.isEditing = true;
-  }
+  openEditDialog(): void {
+    const dialogData: EditPostDialogData = {
+      post: this.post
+    };
 
-  cancelEditing(): void {
-    this.isEditing = false;
-    this.editedDescription = '';
-    this.editedNewsLink = '';
-    this.editedTags = [];
-  }
+    const dialogRef = this.dialog.open(EditPostDialogComponent, {
+      data: dialogData,
+      width: '600px'
+    });
 
-  async saveEdit(): Promise<void> {
-    if (!this.editedDescription.trim() || !this.editedNewsLink.trim()) {
-      alert('Please fill in description and news link');
-      return;
-    }
-
-    // Validate URL format
-    try {
-      new URL(this.editedNewsLink);
-    } catch {
-      alert('Please enter a valid news link URL');
-      return;
-    }
-
-    try {
-      const updateData: Partial<CreatePostData> = {
-        description: this.editedDescription.trim(),
-        news_link: this.editedNewsLink.trim(),
-        tags: this.editedTags.length > 0 ? this.editedTags : undefined
-      };
-
-      const updatedPost = await this.postsService.updatePost(this.post.id, updateData);
-      this.onUpdate.emit(updatedPost);
-      this.isEditing = false;
-    } catch (error: any) {
-      console.error('Failed to update post:', error);
-      const errorMessage = error?.message || error?.error?.message || 'Failed to update post. Please try again.';
-      alert(errorMessage);
-    }
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.onUpdate.emit(result);
+      }
+    });
   }
 }
 

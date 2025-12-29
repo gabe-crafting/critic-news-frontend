@@ -1,4 +1,7 @@
-<app-feed feedTitle="Home" [showSearch]="true">
+<app-feed 
+  [showSearch]="true"
+  (searchChange)="onSearchChange($event)"
+>
   <!-- Posts List -->
   <div>
     @if (postsService.isLoading() && postsService.posts().length === 0) {
@@ -6,7 +9,7 @@
     } @else if (postsService.posts().length === 0) {
       <div class="p-8 text-center text-gray-500">No posts yet.</div>
     } @else {
-      @for (post of postsService.posts(); track post.id) {
+      @for (post of filteredPosts(); track post.id) {
         <app-post [post]="post" [showDelete]="true" (onDelete)="deletePost($event)" (onUpdate)="onPostUpdate($event)"></app-post>
       }
     }

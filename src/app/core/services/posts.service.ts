@@ -269,5 +269,42 @@ export class PostsService {
       this.isLoading.set(false);
     }
   }
+
+  /**
+   * Get all unique tags from all posts
+   */
+  async getAllTags(): Promise<string[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('posts')
+        .select('tags');
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        return [];
+      }
+
+      // Collect all tags from all posts
+      const allTags = new Set<string>();
+      data.forEach(post => {
+        if (post.tags && Array.isArray(post.tags)) {
+          post.tags.forEach((tag: string) => {
+            if (tag && tag.trim()) {
+              allTags.add(tag.trim());
+            }
+          });
+        }
+      });
+
+      // Convert to sorted array
+      return Array.from(allTags).sort();
+    } catch (err: any) {
+      console.error('Failed to fetch tags:', err);
+      return [];
+    }
+  }
 }
 

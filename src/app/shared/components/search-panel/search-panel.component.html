@@ -1,0 +1,80 @@
+<mat-expansion-panel 
+  [(expanded)]="isExpanded"
+  (opened)="onExpansionChange(true)"
+  (closed)="onExpansionChange(false)"
+  class="w-full"
+>
+  <mat-expansion-panel-header>
+    <mat-panel-title>
+      <mat-icon class="mr-2">search</mat-icon>
+      <span>Search</span>
+    </mat-panel-title>
+  </mat-expansion-panel-header>
+
+  <div class="flex flex-col gap-4 pt-2">
+    <!-- Title Search -->
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Search by Title</mat-label>
+      <input 
+        matInput 
+        [(ngModel)]="titleSearch" 
+        (input)="onTitleChange()"
+        placeholder="Enter title keywords..."
+      />
+      <mat-icon matPrefix>title</mat-icon>
+    </mat-form-field>
+
+    <!-- Tags Search -->
+    <div class="flex flex-col gap-2">
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Search by Tags</mat-label>
+        <input 
+          matInput 
+          [(ngModel)]="tagSearch" 
+          (keydown.enter)="onTagInputEnter($event)"
+          placeholder="Type a tag and press Enter..."
+        />
+        <mat-icon matPrefix>label</mat-icon>
+      </mat-form-field>
+
+      <!-- Selected Tags Chips -->
+      @if (selectedTags.length > 0) {
+        <div class="flex flex-wrap gap-2 px-3">
+          @for (tag of selectedTags; track tag) {
+            <mat-chip (removed)="removeTag(tag)">
+              {{ tag }}
+              <button matChipRemove>
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip>
+          }
+        </div>
+      }
+
+      <!-- Available Tags Suggestions (Mock) -->
+      @if (tagSearch && selectedTags.length < 3) {
+        <div class="flex flex-wrap gap-2 px-3">
+          <span class="text-xs text-gray-500">Available tags:</span>
+          @for (tag of getFilteredAvailableTags(); track tag) {
+            <mat-chip (click)="addTag(tag)" class="cursor-pointer hover:bg-blue-100">
+              {{ tag }}
+            </mat-chip>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Clear Button -->
+    @if (titleSearch || selectedTags.length > 0) {
+      <button 
+        mat-button 
+        (click)="clearSearch()"
+        class="self-start"
+      >
+        <mat-icon>clear</mat-icon>
+        Clear Search
+      </button>
+    }
+  </div>
+</mat-expansion-panel>
+

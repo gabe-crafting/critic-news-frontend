@@ -4,10 +4,10 @@
 
   <!-- Feed Component - Full Width -->
   <div class="flex-1 min-h-0 overflow-hidden relative">
-    <app-feed feedTitle="" [showSearch]="false">
+    <app-feed feedTitle="" [showSearch]="true" (searchChange)="onSearchChange($event)">
       <!-- Create Post Button (only for owner) -->
       @if (isOwner) {
-        <div class="border-b border-gray-200 p-4 bg-white">
+        <div class="border-b border-gray-200 p-4">
           <button
             mat-raised-button
             color="primary"
@@ -31,11 +31,11 @@
               No posts yet.
             }
           </div>
-        } @else {
-          @for (post of userPosts(); track post.id) {
-            <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)" (onUpdate)="onPostUpdate($event)"></app-post>
-          }
-        }
+              } @else {
+                @for (post of filteredPosts(); track post.id) {
+                  <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)" (onUpdate)="onPostUpdate($event)"></app-post>
+                }
+              }
       </div>
     </app-feed>
   </div>

@@ -1,19 +1,8 @@
 <div class="flex-1 flex flex-col h-full overflow-y-auto">
   @if (showSearch) {
-    <!-- Searchbar -->
-    <div class="sticky top-0 z-10 bg-white border-b border-gray-200 p-4 shrink-0">
-      <input
-        type="text"
-        placeholder="Search..."
-        class="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      />
-    </div>
-  }
-
-  <!-- Feed Header -->
-  @if (feedTitle) {
-    <div class="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 shrink-0">
-      <h2 class="text-xl font-bold text-gray-900">{{ feedTitle }}</h2>
+    <!-- Search Panel -->
+    <div class="sticky top-0 z-10 border-b border-gray-200 p-4 shrink-0">
+      <app-search-panel (searchChange)="onSearchChange($event)"></app-search-panel>
     </div>
   }
 
