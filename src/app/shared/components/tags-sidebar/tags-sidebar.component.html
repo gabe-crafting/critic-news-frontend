@@ -14,7 +14,19 @@
 <!-- Usually Viewed Tags -->
 <mat-card class="w-full transparent-card">
   <mat-card-header>
-    <mat-card-title class="text-base font-medium">Usually Viewed Tags</mat-card-title>
+    <div class="flex justify-between items-center w-full">
+      <mat-card-title class="text-base font-medium">Usually Viewed Tags</mat-card-title>
+      @if (usuallyViewedTags().length > 0) {
+        <button
+          mat-icon-button
+          (click)="clearUsuallyViewedTags()"
+          class="ml-2"
+          matTooltip="Clear all tags"
+        >
+          <mat-icon>clear</mat-icon>
+        </button>
+      }
+    </div>
   </mat-card-header>
   <mat-card-content>
     @if (usuallyViewedTags().length === 0) {
@@ -22,7 +34,14 @@
     } @else {
       <div class="flex flex-wrap gap-2">
         @for (tag of usuallyViewedTags(); track tag) {
-          <mat-chip>{{ tag }}</mat-chip>
+          <mat-chip 
+            (click)="onTagClick(tag)" 
+            [color]="isTagSelected(tag) ? 'primary' : null"
+            [class.selected-tag]="isTagSelected(tag)"
+            class="cursor-pointer"
+          >
+            {{ tag }}
+          </mat-chip>
         }
       </div>
     }

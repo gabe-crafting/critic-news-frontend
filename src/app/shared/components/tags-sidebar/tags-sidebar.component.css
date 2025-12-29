@@ -1,2 +1,18 @@
-/* Component-specific styles if needed */
+mat-chip {
+  cursor: pointer;
+}
 
+mat-chip:hover:not(.selected-tag) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+mat-chip.selected-tag,
+mat-chip[color="primary"] {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  color: inherit !important;
+}
+
+mat-chip.selected-tag:hover,
+mat-chip[color="primary"]:hover {
+  background-color: rgba(0, 0, 0, 0.12) !important;
+}

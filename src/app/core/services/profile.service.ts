@@ -500,40 +500,39 @@ export class ProfileService {
 
       const currentTags = (profile?.usually_viewed_tags || []) as string[];
       
-      // Remove tag if it already exists (to move it to the front)
-      const filteredTags = currentTags.filter(t => t !== normalizedTag);
-      
-      // Add tag to the beginning of the array (most recent first)
-      const updatedTags = [normalizedTag, ...filteredTags].slice(0, 10); // Keep only top 10
+      // Don't reorder - just add tag if it doesn't exist, keep existing order
+      if (!currentTags.includes(normalizedTag)) {
+        // Add to the end if not present, but limit to 10 total
+        const updatedTags = [...currentTags, normalizedTag].slice(-10);
+        
+        // Update the profile
+        const { error: updateError } = await this.supabase
+          .from('user_profiles')
+          .update({ usually_viewed_tags: updatedTags })
+          .eq('id', userId);
 
-      // Update the profile
-      const { error: updateError } = await this.supabase
-        .from('user_profiles')
-        .update({ usually_viewed_tags: updatedTags })
-        .eq('id', userId);
+        if (updateError) {
+          throw updateError;
+        }
 
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Update the current profile signal if it's the current user's profile
-      const currentProfile = this.currentProfile();
-      if (currentProfile && currentProfile.id === userId) {
-        const updatedProfile = { ...currentProfile, usually_viewed_tags: updatedTags };
-        this.currentProfile.set(updatedProfile);
-      } else {
-        // If profile is not loaded, reload it to get updated tags
-        // This ensures tags-sidebar gets updated even if profile wasn't loaded
-        try {
-          const { data: { user } } = await this.supabase.auth.getUser();
-          if (user && user.id === userId) {
-            await this.getProfile(userId);
+        // Update the current profile signal if it's the current user's profile
+        const currentProfile = this.currentProfile();
+        if (currentProfile && currentProfile.id === userId) {
+          const updatedProfile = { ...currentProfile, usually_viewed_tags: updatedTags };
+          this.currentProfile.set(updatedProfile);
+        } else {
+          // If profile is not loaded, reload it to get updated tags
+          try {
+            const { data: { user } } = await this.supabase.auth.getUser();
+            if (user && user.id === userId) {
+              await this.getProfile(userId);
+            }
+          } catch (err) {
+            console.warn('Could not reload profile after tracking tag:', err);
           }
-        } catch (err) {
-          // If we can't get user, that's okay - tags are still saved in DB
-          console.warn('Could not reload profile after tracking tag:', err);
         }
       }
+      // If tag already exists, don't do anything - keep the order as is
     } catch (err: any) {
       console.error('Failed to track tag view:', err);
       // Don't throw - this is a non-critical operation
@@ -559,6 +558,42 @@ export class ProfileService {
     } catch (err: any) {
       console.error('Failed to get usually viewed tags:', err);
       return [];
+    }
+  }
+
+  /**
+   * Clear usually viewed tags for a user
+   */
+  async clearUsuallyViewedTags(userId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('user_profiles')
+        .update({ usually_viewed_tags: [] })
+        .eq('id', userId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update the current profile signal if it's the current user's profile
+      const currentProfile = this.currentProfile();
+      if (currentProfile && currentProfile.id === userId) {
+        const updatedProfile = { ...currentProfile, usually_viewed_tags: [] };
+        this.currentProfile.set(updatedProfile);
+      } else {
+        // If profile is not loaded, reload it to get updated tags
+        try {
+          const { data: { user } } = await this.supabase.auth.getUser();
+          if (user && user.id === userId) {
+            await this.getProfile(userId);
+          }
+        } catch (err) {
+          console.warn('Could not reload profile after clearing tags:', err);
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to clear usually viewed tags:', err);
+      throw err;
     }
   }
 }

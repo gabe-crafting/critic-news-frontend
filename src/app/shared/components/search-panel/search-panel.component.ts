@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, OnInit } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -7,7 +7,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { Subscription } from 'rxjs';
 import { PostsService } from '../../../core/services/posts.service';
+import { SearchService } from '../../../core/services/search.service';
 
 export interface SearchFilters {
   tags: string[];
@@ -30,7 +32,7 @@ export interface SearchFilters {
   templateUrl: './search-panel.component.html',
   styleUrl: './search-panel.component.css'
 })
-export class SearchPanelComponent implements OnInit {
+export class SearchPanelComponent implements OnInit, OnDestroy {
   @Output() searchChange = new EventEmitter<SearchFilters>();
   
   isExpanded = false;
@@ -38,11 +40,33 @@ export class SearchPanelComponent implements OnInit {
   tagSearch = '';
   selectedTags: string[] = [];
   availableTags: string[] = [];
+  private searchSubscription?: Subscription;
+  private isUpdatingFromService = false;
 
-  constructor(private postsService: PostsService) {}
+  constructor(
+    private postsService: PostsService,
+    private searchService: SearchService
+  ) {}
 
   async ngOnInit(): Promise<void> {
     await this.loadTags();
+    
+    // Subscribe to search triggers from other components (e.g., tags sidebar)
+    this.searchSubscription = this.searchService.searchTrigger$.subscribe(filters => {
+      // Update the search panel state
+      this.isUpdatingFromService = true;
+      this.titleSearch = filters.title;
+      this.selectedTags = [...filters.tags];
+      
+      // Don't expand the panel - just update state and search
+      // Emit the search immediately (but don't update service to avoid loop)
+      this.searchChange.emit(filters);
+      this.isUpdatingFromService = false;
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.searchSubscription?.unsubscribe();
   }
 
   async loadTags(): Promise<void> {
@@ -102,15 +126,20 @@ export class SearchPanelComponent implements OnInit {
     this.titleSearch = '';
     this.tagSearch = '';
     this.selectedTags = [];
-    // Emit empty search to clear results
+    // Emit empty search to clear results (will update service via emitSearch)
     this.emitSearch();
   }
 
   private emitSearch(): void {
-    this.searchChange.emit({
+    const filters = {
       title: this.titleSearch.trim(),
       tags: [...this.selectedTags]
-    });
+    };
+    this.searchChange.emit(filters);
+    // Update the search service to keep tags sidebar in sync (only if not updating from service)
+    if (!this.isUpdatingFromService) {
+      this.searchService.triggerSearch(filters);
+    }
   }
 }
 
