@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { PostsService } from '../../../core/services/posts.service';
 
 export interface SearchFilters {
@@ -23,7 +24,8 @@ export interface SearchFilters {
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
-    MatIconModule
+    MatIconModule,
+    MatButtonModule
   ],
   templateUrl: './search-panel.component.html',
   styleUrl: './search-panel.component.css'
@@ -53,7 +55,7 @@ export class SearchPanelComponent implements OnInit {
   }
 
   onTitleChange(): void {
-    this.emitSearch();
+    // No longer auto-search on input change
   }
 
   onTagInputEnter(event: Event): void {
@@ -75,12 +77,16 @@ export class SearchPanelComponent implements OnInit {
   addTag(tag: string): void {
     if (tag && !this.selectedTags.includes(tag)) {
       this.selectedTags.push(tag);
-      this.emitSearch();
+      // No longer auto-search when adding tag
     }
   }
 
   removeTag(tag: string): void {
     this.selectedTags = this.selectedTags.filter(t => t !== tag);
+    // No longer auto-search when removing tag
+  }
+
+  onSearch(): void {
     this.emitSearch();
   }
 
@@ -96,6 +102,7 @@ export class SearchPanelComponent implements OnInit {
     this.titleSearch = '';
     this.tagSearch = '';
     this.selectedTags = [];
+    // Emit empty search to clear results
     this.emitSearch();
   }
 

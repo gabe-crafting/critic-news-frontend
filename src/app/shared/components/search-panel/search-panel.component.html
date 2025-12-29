@@ -64,17 +64,26 @@
       }
     </div>
 
-    <!-- Clear Button -->
-    @if (titleSearch || selectedTags.length > 0) {
+    <!-- Action Buttons -->
+    <div class="flex gap-2 justify-end">
+      @if (titleSearch || selectedTags.length > 0) {
+        <button 
+          mat-button 
+          (click)="clearSearch()"
+        >
+          <mat-icon>clear</mat-icon>
+          Clear
+        </button>
+      }
       <button 
-        mat-button 
-        (click)="clearSearch()"
-        class="self-start"
+        mat-raised-button 
+        color="primary"
+        (click)="onSearch()"
       >
-        <mat-icon>clear</mat-icon>
-        Clear Search
+        <mat-icon>search</mat-icon>
+        Search
       </button>
-    }
+    </div>
   </div>
 </mat-expansion-panel>
 
