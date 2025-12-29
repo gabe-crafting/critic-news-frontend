@@ -1,6 +1,6 @@
-<div class="min-h-screen flex mx-auto" style="max-width: 1400px; margin-left: auto; margin-right: auto;">
+<div class="layout-container">
   <!-- Left Sidebar -->
-  <aside class="w-80 p-4 flex flex-col h-screen">
+  <aside class="left-sidebar">
     <div class="flex flex-col h-full gap-4">
       <!-- App Title (Logo) -->
       <div class="w-full p-4">
@@ -24,12 +24,12 @@
   </aside>
 
   <!-- Center Content Area - Router Outlet -->
-  <main class="flex-1 flex flex-col h-screen overflow-hidden px-4 pt-4">
+  <main class="main-content">
     <router-outlet></router-outlet>
   </main>
 
   <!-- Right Sidebar - Tags -->
-  <aside class="w-80 p-4 flex flex-col h-screen">
+  <aside class="right-sidebar">
     <app-tags-sidebar></app-tags-sidebar>
   </aside>
 </div>

@@ -2,18 +2,20 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../core/services/auth.service';
 
 interface MenuItem {
   label: string;
   route: string;
+  icon: string;
   mock?: boolean;
 }
 
 @Component({
   selector: 'app-menu',
   standalone: true,
-  imports: [CommonModule, MatButtonModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule],
   templateUrl: './menu.component.html',
   styleUrl: './menu.component.css'
 })
@@ -28,10 +30,10 @@ export class MenuComponent {
     const profileRoute = user ? `/profile/${user.id}` : '/app';
     
     return [
-      { label: 'Home', route: '/app' },
-      { label: 'Profile', route: profileRoute },
-      { label: 'Following', route: '/follow' },
-      { label: 'Discover Junkies', route: '/discover' }
+      { label: 'Home', route: '/app', icon: 'home' },
+      { label: 'Profile', route: profileRoute, icon: 'person' },
+      { label: 'Following', route: '/following', icon: 'people' },
+      { label: 'Discover Junkies', route: '/discover', icon: 'explore' }
     ];
   }
 

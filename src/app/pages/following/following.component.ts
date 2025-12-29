@@ -4,6 +4,7 @@ import { FeedComponent } from '../../shared/components/feed/feed.component';
 import { PostComponent } from '../../shared/components/post/post.component';
 import { PostsService, Post } from '../../core/services/posts.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ProfileService } from '../../core/services/profile.service';
 import { SearchFilters } from '../../shared/components/search-panel/search-panel.component';
 
 @Component({
@@ -52,7 +53,8 @@ export class FollowingComponent implements OnInit {
 
   constructor(
     public postsService: PostsService,
-    public authService: AuthService
+    public authService: AuthService,
+    private profileService: ProfileService
   ) {}
 
   ngOnInit(): void {
@@ -77,8 +79,17 @@ export class FollowingComponent implements OnInit {
     }
   }
 
-  onSearchChange(filters: SearchFilters): void {
+  async onSearchChange(filters: SearchFilters): Promise<void> {
     this.searchFilters.set(filters);
+    
+    // Track tags when they're searched
+    const user = this.authService.currentUser();
+    if (user && filters.tags.length > 0) {
+      // Track each tag that was searched
+      for (const tag of filters.tags) {
+        await this.profileService.trackTagView(user.id, tag);
+      }
+    }
   }
 
   async deletePost(postId: string): Promise<void> {

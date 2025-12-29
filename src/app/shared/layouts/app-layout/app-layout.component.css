@@ -1,6 +1,45 @@
-::ng-deep .transparent-card {
-  background-color: transparent !important;
-  box-shadow: none !important;
-  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+.layout-container {
+  position: relative;
+  min-height: 100vh;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
 }
 
+.left-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  width: 320px; /* w-80 = 20rem = 320px */
+  height: 100vh;
+  padding: 1rem;
+  overflow-y: auto;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.right-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  width: 320px; /* w-80 = 20rem = 320px */
+  height: 100vh;
+  padding: 1rem;
+  overflow-y: auto;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.main-content {
+  flex: 1;
+  min-height: 100vh;
+  padding: 1rem;
+  padding-top: 1rem;
+  min-width: 0; /* Allow flex item to shrink */
+}
+
+/* Ensure body/html can scroll globally */
+:host {
+  display: block;
+}

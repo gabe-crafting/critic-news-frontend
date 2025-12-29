@@ -7,6 +7,7 @@ export interface UserProfile {
   name: string | null;
   description: string | null;
   profile_picture_url: string | null;
+  usually_viewed_tags: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -472,6 +473,92 @@ export class ProfileService {
     } catch (err: any) {
       console.error('Failed to get follow status:', err);
       return new Set();
+    }
+  }
+
+  /**
+   * Track a tag as viewed by a user (add to usually_viewed_tags array)
+   */
+  async trackTagView(userId: string, tag: string): Promise<void> {
+    if (!tag || !tag.trim()) {
+      return;
+    }
+
+    const normalizedTag = tag.trim().toLowerCase();
+
+    try {
+      // Get current profile to check existing tags
+      const { data: profile, error: selectError } = await this.supabase
+        .from('user_profiles')
+        .select('usually_viewed_tags')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (selectError) {
+        throw selectError;
+      }
+
+      const currentTags = (profile?.usually_viewed_tags || []) as string[];
+      
+      // Remove tag if it already exists (to move it to the front)
+      const filteredTags = currentTags.filter(t => t !== normalizedTag);
+      
+      // Add tag to the beginning of the array (most recent first)
+      const updatedTags = [normalizedTag, ...filteredTags].slice(0, 10); // Keep only top 10
+
+      // Update the profile
+      const { error: updateError } = await this.supabase
+        .from('user_profiles')
+        .update({ usually_viewed_tags: updatedTags })
+        .eq('id', userId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Update the current profile signal if it's the current user's profile
+      const currentProfile = this.currentProfile();
+      if (currentProfile && currentProfile.id === userId) {
+        const updatedProfile = { ...currentProfile, usually_viewed_tags: updatedTags };
+        this.currentProfile.set(updatedProfile);
+      } else {
+        // If profile is not loaded, reload it to get updated tags
+        // This ensures tags-sidebar gets updated even if profile wasn't loaded
+        try {
+          const { data: { user } } = await this.supabase.auth.getUser();
+          if (user && user.id === userId) {
+            await this.getProfile(userId);
+          }
+        } catch (err) {
+          // If we can't get user, that's okay - tags are still saved in DB
+          console.warn('Could not reload profile after tracking tag:', err);
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to track tag view:', err);
+      // Don't throw - this is a non-critical operation
+    }
+  }
+
+  /**
+   * Get usually viewed tags for a user
+   */
+  async getUsuallyViewedTags(userId: string): Promise<string[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('user_profiles')
+        .select('usually_viewed_tags')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return (data?.usually_viewed_tags || []) as string[];
+    } catch (err: any) {
+      console.error('Failed to get usually viewed tags:', err);
+      return [];
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -63,7 +63,27 @@ export class ProfileComponent implements OnInit, OnDestroy {
     public postsService: PostsService,
     private route: ActivatedRoute,
     private router: Router
-  ) {}
+  ) {
+    // Watch for new posts from the current user and add them to userPosts if viewing own profile
+    effect(() => {
+      const posts = this.postsService.posts();
+      const currentUser = this.authService.currentUser();
+      
+      // Only update if viewing own profile and there are posts
+      if (posts.length > 0 && currentUser && this.profileUserId && this.profileUserId === currentUser.id) {
+        // Check if there's a new post from the current user that's not in userPosts
+        const userPostsIds = new Set(this.userPosts().map(p => p.id));
+        const newUserPosts = posts.filter(post => 
+          post.user_id === currentUser.id && !userPostsIds.has(post.id)
+        );
+        
+        if (newUserPosts.length > 0) {
+          // Add new posts to the beginning of the array
+          this.userPosts.update(existing => [...newUserPosts, ...existing]);
+        }
+      }
+    });
+  }
 
   ngOnInit(): void {
     // Get profile ID from route params
@@ -132,8 +152,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
     );
   }
 
-  onSearchChange(filters: SearchFilters): void {
+  async onSearchChange(filters: SearchFilters): Promise<void> {
     this.searchFilters.set(filters);
+    
+    // Track tags when they're searched
+    const user = this.authService.currentUser();
+    if (user && filters.tags.length > 0) {
+      // Track each tag that was searched
+      for (const tag of filters.tags) {
+        await this.profileService.trackTagView(user.id, tag);
+      }
+    }
   }
 
   get isOwner(): boolean {

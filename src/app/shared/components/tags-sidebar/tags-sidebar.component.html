@@ -6,6 +6,7 @@
     (click)="openCreatePostDialog()"
     class="w-full mb-4"
   >
+    <mat-icon>add</mat-icon>
     Create Post
   </button>
 }
@@ -16,11 +17,15 @@
     <mat-card-title class="text-base font-medium">Usually Viewed Tags</mat-card-title>
   </mat-card-header>
   <mat-card-content>
-    <div class="flex flex-wrap gap-2">
-      @for (tag of usuallyViewedTags; track tag) {
-        <mat-chip>{{ tag }}</mat-chip>
-      }
-    </div>
+    @if (usuallyViewedTags().length === 0) {
+      <p class="text-sm text-gray-500">No tags viewed yet. Start searching to see your usually viewed tags here!</p>
+    } @else {
+      <div class="flex flex-wrap gap-2">
+        @for (tag of usuallyViewedTags(); track tag) {
+          <mat-chip>{{ tag }}</mat-chip>
+        }
+      </div>
+    }
   </mat-card-content>
 </mat-card>
 

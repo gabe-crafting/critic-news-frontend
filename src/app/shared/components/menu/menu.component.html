@@ -6,6 +6,7 @@
       (click)="item.mock ? onMockClick(item.label) : router.navigate([item.route])"
       class="w-full justify-center"
     >
+      <mat-icon class="mr-2">{{ item.icon }}</mat-icon>
       {{ item.label }}
     </button>
   }
@@ -16,6 +17,7 @@
       [disabled]="authService.isLoading()"
       class="w-full justify-center sign-out-button disabled:opacity-50 disabled:cursor-not-allowed"
     >
+      <mat-icon class="mr-2">logout</mat-icon>
       @if (authService.isLoading()) {
         Signing out...
       } @else {
