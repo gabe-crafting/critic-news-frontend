@@ -31,7 +31,7 @@ export class MenuComponent {
       { label: 'Home', route: '/app' },
       { label: 'Profile', route: profileRoute },
       { label: 'Follow', route: '/follow', mock: true },
-      { label: 'Discover Junkies', route: '/discover', mock: true }
+      { label: 'Discover Junkies', route: '/discover' }
     ];
   }
 

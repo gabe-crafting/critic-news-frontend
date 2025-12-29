@@ -59,6 +59,32 @@ export class ProfileService {
   }
 
   /**
+   * Get all user profiles
+   */
+  async getAllProfiles(): Promise<UserProfile[]> {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    try {
+      const { data, error } = await this.supabase
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (err: any) {
+      this.error.set(err.message || 'Failed to fetch profiles');
+      throw err;
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  /**
    * Create or update user profile
    */
   async upsertProfile(userId: string, profile: { name?: string; description?: string }): Promise<UserProfile> {
