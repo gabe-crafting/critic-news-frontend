@@ -315,6 +315,21 @@ export class PostsService {
     this.error.set(null);
 
     try {
+      // Check if user has a profile with a name before creating post
+      const { data: profileData, error: profileError } = await this.supabase
+        .from('user_profiles')
+        .select('id, name')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      if (!profileData || !profileData.name || !profileData.name.trim()) {
+        throw new Error('You need to add a name to your profile before posting. Please edit your profile first.');
+      }
+
       // Insert the post
       const { data: postDataResult, error: insertError } = await this.supabase
         .from('posts')
@@ -332,8 +347,8 @@ export class PostsService {
         throw insertError;
       }
 
-      // Fetch user profile (may not exist, so use maybeSingle())
-      const { data: profileData } = await this.supabase
+      // Fetch user profile with picture URL for display
+      const { data: fullProfileData } = await this.supabase
         .from('user_profiles')
         .select('id, name, profile_picture_url')
         .eq('id', userId)
@@ -342,7 +357,7 @@ export class PostsService {
       // Combine post with profile
       const data = {
         ...postDataResult,
-        user_profiles: profileData || null
+        user_profiles: fullProfileData || null
       };
 
       // Add new post to the beginning of the posts array

@@ -79,6 +79,13 @@ export class TagsSidebarComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Check if user has a profile with a name
+    const profile = this.profileService.currentProfile();
+    if (!profile || !profile.name || !profile.name.trim()) {
+      alert('You need to add a name to your profile before creating posts. Please edit your profile first.');
+      return;
+    }
+
     const dialogData: CreatePostDialogData = {
       userId: user.id
     };

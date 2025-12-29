@@ -45,7 +45,7 @@ export const routes: Routes = [
         component: DiscoverJunkiesComponent
       },
       {
-        path: 'follow',
+        path: 'following',
         component: FollowingComponent
       }
     ]

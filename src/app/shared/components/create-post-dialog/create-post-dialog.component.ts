@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { PostsService } from '../../../core/services/posts.service';
+import { ProfileService } from '../../../core/services/profile.service';
 import { TagsInputComponent } from '../tags-input/tags-input.component';
 
 export interface CreatePostDialogData {
@@ -35,7 +36,8 @@ export class CreatePostDialogComponent {
   constructor(
     public dialogRef: MatDialogRef<CreatePostDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: CreatePostDialogData,
-    public postsService: PostsService
+    public postsService: PostsService,
+    private profileService: ProfileService
   ) {}
 
   onCancel(): void {
@@ -44,6 +46,14 @@ export class CreatePostDialogComponent {
 
   async onPost(): Promise<void> {
     if (!this.data.userId) {
+      return;
+    }
+
+    // Require profile name before allowing posts to avoid FK errors and anonymous junk
+    const profile = this.profileService.currentProfile();
+    if (!profile || !profile.name || !profile.name.trim()) {
+      alert('You need to add a name to your profile before posting. Please edit your profile first.');
+      this.dialogRef.close();
       return;
     }
 

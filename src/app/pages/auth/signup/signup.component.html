@@ -5,90 +5,66 @@
     </div>
     <form class="mt-8 space-y-6" [formGroup]="signupForm" (ngSubmit)="onSubmit()">
       @if (errorMessage()) {
-        <div class="rounded-md bg-red-50 p-4">
-          <div class="flex">
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">{{ errorMessage() }}</h3>
-            </div>
+      <div class="rounded-md bg-red-50 p-4">
+        <div class="flex">
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800">{{ errorMessage() }}</h3>
           </div>
         </div>
+      </div>
       }
 
-      <div class="rounded-md shadow-sm space-y-4">
-        <div>
-          <label for="email" class="sr-only">Email address</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            required
-            formControlName="email"
-            class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="Email address"
-          />
-          @if (email?.invalid && (email?.dirty || email?.touched)) {
-            <p class="mt-1 text-sm text-red-600">
-              @if (email?.errors?.['required']) {
-                Email is required
-              } @else if (email?.errors?.['email']) {
-                Please enter a valid email
-              }
-            </p>
+      <div>
+        <label for="email" class="sr-only">Email address</label>
+        <input id="email" name="email" type="email" autocomplete="email" required formControlName="email"
+          class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+          placeholder="Email address" />
+        @if (email?.invalid && (email?.dirty || email?.touched)) {
+        <p class="mt-1 text-sm text-red-600">
+          @if (email?.errors?.['required']) {
+          Email is required
+          } @else if (email?.errors?.['email']) {
+          Please enter a valid email
           }
-        </div>
-        <div>
-          <label for="password" class="sr-only">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="new-password"
-            required
-            formControlName="password"
-            class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="Password"
-          />
-          @if (password?.invalid && (password?.dirty || password?.touched)) {
-            <p class="mt-1 text-sm text-red-600">
-              @if (password?.errors?.['required']) {
-                Password is required
-              } @else if (password?.errors?.['minlength']) {
-                Password must be at least 6 characters
-              }
-            </p>
+        </p>
+        }
+      </div>
+      <div>
+        <label for="password" class="sr-only">Password</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" required
+          formControlName="password"
+          class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+          placeholder="Password" />
+        @if (password?.invalid && (password?.dirty || password?.touched)) {
+        <p class="mt-1 text-sm text-red-600">
+          @if (password?.errors?.['required']) {
+          Password is required
+          } @else if (password?.errors?.['minlength']) {
+          Password must be at least 6 characters
           }
-        </div>
-        <div>
-          <label for="confirmPassword" class="sr-only">Confirm Password</label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            autocomplete="new-password"
-            required
-            formControlName="confirmPassword"
-            class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="Confirm Password"
-          />
-          @if (passwordMismatch) {
-            <p class="mt-1 text-sm text-red-600">Passwords do not match</p>
-          } @else if (confirmPassword?.invalid && (confirmPassword?.dirty || confirmPassword?.touched)) {
-            <p class="mt-1 text-sm text-red-600">Please confirm your password</p>
-          }
-        </div>
+        </p>
+        }
+      </div>
+      <div>
+        <label for="confirmPassword" class="sr-only">Confirm Password</label>
+        <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required
+          formControlName="confirmPassword"
+          class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+          placeholder="Confirm Password" />
+        @if (passwordMismatch) {
+        <p class="mt-1 text-sm text-red-600">Passwords do not match</p>
+        } @else if (confirmPassword?.invalid && (confirmPassword?.dirty || confirmPassword?.touched)) {
+        <p class="mt-1 text-sm text-red-600">Please confirm your password</p>
+        }
       </div>
 
       <div>
-        <button
-          type="submit"
-          [disabled]="signupForm.invalid || isLoading()"
-          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <button type="submit" [disabled]="signupForm.invalid || isLoading()"
+          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
           @if (isLoading()) {
-            Signing up...
+          Signing up...
           } @else {
-            Sign up
+          Sign up
           }
         </button>
       </div>
@@ -104,4 +80,3 @@
     </form>
   </div>
 </div>
-
