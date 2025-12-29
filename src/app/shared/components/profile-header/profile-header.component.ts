@@ -84,16 +84,12 @@ export class ProfileHeaderComponent implements OnChanges {
     if (profile?.name) {
       return profile.name;
     }
-    if (this.isOwner) {
-      const user = this.authService.currentUser();
-      return user?.email?.split('@')[0] || 'User';
-    }
-    return 'User';
+    return 'John Doe';
   }
 
   get displayDescription(): string {
     const profile = this.profileService.currentProfile();
-    return profile?.description || 'Software developer passionate about building great user experiences. Always learning and sharing knowledge with the community.';
+    return profile?.description || '';
   }
 
   get profilePictureUrl(): string | null {

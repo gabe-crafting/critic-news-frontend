@@ -1,0 +1,22 @@
+# Ignore files that shouldn't be deployed
+node_modules
+.git
+.angular
+.vscode
+.idea
+*.log
+.env
+.env.local
+.env.*.local
+coverage
+dist
+tmp
+out-tsc
+bazel-out
+__screenshots__
+*.md
+!README.md
+supabase/migrations
+supabase/config.toml
+.cursorrules
+

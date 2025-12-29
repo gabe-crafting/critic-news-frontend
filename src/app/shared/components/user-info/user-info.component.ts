@@ -36,8 +36,7 @@ export class UserInfoComponent {
     if (profile?.name) {
       return profile.name;
     }
-    const user = this.authService.currentUser();
-    return user?.email?.split('@')[0] || 'User';
+    return 'John Doe';
   }
 
   get profileInitial(): string {
