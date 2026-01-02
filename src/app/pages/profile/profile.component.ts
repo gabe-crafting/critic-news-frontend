@@ -125,12 +125,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  async onPostUpdate(updatedPost: any): Promise<void> {
-    // Reload posts to reflect any changes
-    if (this.profileUserId) {
-      this.loadUserPosts(this.profileUserId);
-    }
-  }
 
   async onSearchChange(filters: SearchFilters): Promise<void> {
     this.searchFilters.set(filters);

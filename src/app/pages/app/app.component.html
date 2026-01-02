@@ -13,7 +13,7 @@
       <div class="p-8 text-center text-gray-500">No posts yet.</div>
     } @else {
       @for (post of filteredPosts(); track post.id) {
-        <app-post [post]="post" [showDelete]="true" (onDelete)="deletePost($event)" (onUpdate)="onPostUpdate($event)"></app-post>
+        <app-post [post]="post" [showDelete]="true" (onDelete)="deletePost($event)"></app-post>
       }
     }
   </div>

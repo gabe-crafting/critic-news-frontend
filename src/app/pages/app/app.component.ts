@@ -71,14 +71,6 @@ export class AppPageComponent {
   }
 
 
-  loadPosts(): void {
-    const user = this.authService.currentUser();
-    this.store.dispatch(PostsActions.loadPosts({ 
-      limit: 50, 
-      tags: undefined, 
-      currentUserId: user?.id 
-    }));
-  }
 
   async onSearchChange(filters: SearchFilters): Promise<void> {
     this.searchFilters.set(filters);
@@ -98,9 +90,5 @@ export class AppPageComponent {
       return;
     }
     this.store.dispatch(PostsActions.deletePost({ postId }));
-  }
-
-  onPostUpdate(updatedPost: any): void {
-    // Store will handle updates automatically
   }
 }

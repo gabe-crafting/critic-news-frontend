@@ -142,36 +142,6 @@ export class ProfileService {
     }
   }
 
-  /**
-   * Create or update user profile
-   */
-  async upsertProfile(userId: string, profile: { name?: string; description?: string }): Promise<UserProfile> {
-    try {
-      const { data, error } = await this.supabase
-        .from('user_profiles')
-        .upsert(
-          {
-            id: userId,
-            name: profile.name || null,
-            description: profile.description || null
-          },
-          {
-            onConflict: 'id'
-          }
-        )
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      return data;
-    } catch (err: any) {
-      console.error('Failed to save profile:', err);
-      throw err;
-    }
-  }
 
   /**
    * Update user profile

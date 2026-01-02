@@ -18,8 +18,7 @@
     </div>
     } @else {
     @for (post of (userPosts$ | async) || []; track post.id) {
-    <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)"
-      (onUpdate)="onPostUpdate($event)"></app-post>
+    <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)"></app-post>
     }
     }
   </div>
