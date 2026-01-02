@@ -458,8 +458,32 @@ export class PostsService {
 
   /**
    * Get all unique tags from all posts
+   * Uses optimized PostgreSQL query with GIN index
    */
   async getAllTags(): Promise<string[]> {
+    try {
+      // Use unnest() to flatten all tag arrays, then get distinct values
+      // This leverages the GIN index for optimal performance
+      const { data, error } = await this.supabase
+        .rpc('get_unique_tags');
+
+      if (error) {
+        // Fallback to the old method if RPC doesn't exist
+        console.warn('RPC function not found, falling back to client-side processing');
+        return this.getAllTagsFallback();
+      }
+
+      return (data as string[]) || [];
+    } catch (err: any) {
+      console.error('Failed to fetch tags:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Fallback method for getting unique tags (client-side processing)
+   */
+  private async getAllTagsFallback(): Promise<string[]> {
     try {
       const { data, error } = await this.supabase
         .from('posts')
@@ -488,7 +512,7 @@ export class PostsService {
       // Convert to sorted array
       return Array.from(allTags).sort();
     } catch (err: any) {
-      console.error('Failed to fetch tags:', err);
+      console.error('Failed to fetch tags (fallback):', err);
       return [];
     }
   }
