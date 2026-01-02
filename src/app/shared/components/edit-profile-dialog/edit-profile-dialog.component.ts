@@ -5,7 +5,10 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { ProfileService } from '../../../core/services/profile.service';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
+import * as ProfileActions from '../../../core/store/profile/profile.actions';
+import * as ProfileSelectors from '../../../core/store/profile/profile.selectors';
 
 export interface EditProfileDialogData {
   name: string;
@@ -31,36 +34,37 @@ export class EditProfileDialogComponent {
   editedName: string;
   editedDescription: string;
   profileUserId: string;
+  isLoading$: Observable<boolean>;
 
   constructor(
     public dialogRef: MatDialogRef<EditProfileDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: EditProfileDialogData,
-    public profileService: ProfileService
+    private store: Store
   ) {
     this.editedName = data.name || '';
     this.editedDescription = data.description || '';
     this.profileUserId = data.profileUserId;
+    this.isLoading$ = this.store.select(ProfileSelectors.selectProfileLoading);
   }
 
   onCancel(): void {
     this.dialogRef.close();
   }
 
-  async onSave(): Promise<void> {
+  onSave(): void {
     if (!this.profileUserId) {
       return;
     }
 
-    try {
-      await this.profileService.upsertProfile(this.profileUserId, {
-        name: this.editedName.trim() || undefined,
-        description: this.editedDescription.trim() || undefined
-      });
-      this.dialogRef.close(true);
-    } catch (error) {
-      console.error('Failed to save profile:', error);
-      // Dialog will remain open so user can retry
-    }
+    this.store.dispatch(ProfileActions.updateProfile({
+      userId: this.profileUserId,
+      updates: {
+        name: this.editedName.trim() || null,
+        description: this.editedDescription.trim() || null
+      }
+    }));
+
+    this.dialogRef.close(true);
   }
 }
 

@@ -3,9 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { EditProfileDialogComponent, EditProfileDialogData } from '../edit-profile-dialog/edit-profile-dialog.component';
+import * as ProfileActions from '../../../core/store/profile/profile.actions';
+import * as ProfileSelectors from '../../../core/store/profile/profile.selectors';
 
 @Component({
   selector: 'app-profile-header',
@@ -17,60 +21,35 @@ import { EditProfileDialogComponent, EditProfileDialogData } from '../edit-profi
 export class ProfileHeaderComponent implements OnChanges {
   @Input() profileUserId: string | null = null;
 
-  isFollowingUser = signal<boolean>(false);
-  followersCount = signal<number>(0);
-  followingCount = signal<number>(0);
+  // Store observables
+  currentProfile$!: Observable<any>;
+  isFollowingUser$!: Observable<boolean>;
+  followersCount$!: Observable<number>;
+  followingCount$!: Observable<number>;
+  profileLoading$!: Observable<boolean>;
+
+  // Local signals for component-specific state
   isCheckingFollowStatus = signal<boolean>(false);
 
-
   constructor(
+    private store: Store,
     public profileService: ProfileService,
     public authService: AuthService,
     private dialog: MatDialog
-  ) {}
+  ) {
+    // Initialize store observables
+    this.currentProfile$ = this.store.select(ProfileSelectors.selectCurrentProfile);
+    this.isFollowingUser$ = this.store.select(ProfileSelectors.selectIsFollowing);
+    this.followersCount$ = this.store.select(ProfileSelectors.selectFollowersCount);
+    this.followingCount$ = this.store.select(ProfileSelectors.selectFollowingCount);
+    this.profileLoading$ = this.store.select(ProfileSelectors.selectProfileLoading);
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // ProfileComponent is now responsible for loading profile data
+    // This component just consumes the data from the store
     if (changes['profileUserId'] && this.profileUserId) {
-      this.profileService.getProfile(this.profileUserId).catch(error => {
-        console.error('Failed to load profile:', error);
-      });
-      this.loadFollowStatus();
-      this.loadFollowCounts();
-    }
-  }
-
-  async loadFollowStatus(): Promise<void> {
-    if (!this.profileUserId) return;
-
-    const currentUser = this.authService.currentUser();
-    if (!currentUser || currentUser.id === this.profileUserId) {
-      this.isFollowingUser.set(false);
-      return;
-    }
-
-    try {
-      const following = await this.profileService.isFollowing(
-        this.profileUserId,
-        currentUser.id
-      );
-      this.isFollowingUser.set(following);
-    } catch (error) {
-      console.error('Failed to load follow status:', error);
-    }
-  }
-
-  async loadFollowCounts(): Promise<void> {
-    if (!this.profileUserId) return;
-
-    try {
-      const [followers, following] = await Promise.all([
-        this.profileService.getFollowersCount(this.profileUserId),
-        this.profileService.getFollowingCount(this.profileUserId)
-      ]);
-      this.followersCount.set(followers);
-      this.followingCount.set(following);
-    } catch (error) {
-      console.error('Failed to load follow counts:', error);
+      // Profile data should already be loaded by ProfileComponent
     }
   }
 
@@ -79,34 +58,16 @@ export class ProfileHeaderComponent implements OnChanges {
     return currentUser?.id === this.profileUserId;
   }
 
-  get displayName(): string {
-    const profile = this.profileService.currentProfile();
-    if (profile?.name) {
-      return profile.name;
-    }
-    return 'John Doe';
-  }
-
-  get displayDescription(): string {
-    const profile = this.profileService.currentProfile();
-    return profile?.description || '';
-  }
-
-  get profilePictureUrl(): string | null {
-    const profile = this.profileService.currentProfile();
-    return profile?.profile_picture_url || null;
-  }
-
-  get profileInitial(): string {
-    return this.displayName.charAt(0).toUpperCase();
-  }
 
   openEditDialog(): void {
     if (!this.profileUserId || !this.isOwner) {
       return;
     }
 
-    const profile = this.profileService.currentProfile();
+    // Get profile from store
+    let profile: any = null;
+    this.currentProfile$.subscribe(p => profile = p).unsubscribe();
+
     const dialogData: EditProfileDialogData = {
       name: profile?.name || '',
       description: profile?.description || '',
@@ -148,16 +109,14 @@ export class ProfileHeaderComponent implements OnChanges {
       return;
     }
 
-    try {
-      await this.profileService.uploadProfilePicture(this.profileUserId, file);
-      input.value = '';
-    } catch (error) {
-      console.error('Failed to upload profile picture:', error);
-      alert('Failed to upload profile picture. Please try again.');
-    }
+    this.store.dispatch(ProfileActions.uploadProfilePicture({
+      userId: this.profileUserId,
+      file: file
+    }));
+    input.value = '';
   }
 
-  async deleteProfilePicture(): Promise<void> {
+  deleteProfilePicture(): void {
     if (!this.isOwner || !this.profileUserId) {
       return;
     }
@@ -166,15 +125,12 @@ export class ProfileHeaderComponent implements OnChanges {
       return;
     }
 
-    try {
-      await this.profileService.deleteProfilePicture(this.profileUserId);
-    } catch (error) {
-      console.error('Failed to delete profile picture:', error);
-      alert('Failed to delete profile picture. Please try again.');
-    }
+    this.store.dispatch(ProfileActions.deleteProfilePicture({
+      userId: this.profileUserId
+    }));
   }
 
-  async toggleFollow(): Promise<void> {
+  toggleFollow(): void {
     if (!this.profileUserId) return;
 
     const currentUser = this.authService.currentUser();
@@ -182,24 +138,25 @@ export class ProfileHeaderComponent implements OnChanges {
 
     if (this.isCheckingFollowStatus()) return;
 
+    // Get current follow status from store
+    let isFollowing = false;
+    this.isFollowingUser$.subscribe(following => isFollowing = following).unsubscribe();
+
     this.isCheckingFollowStatus.set(true);
 
-    try {
-      if (this.isFollowingUser()) {
-        await this.profileService.unfollowUser(this.profileUserId, currentUser.id);
-        this.isFollowingUser.set(false);
-        this.followersCount.update(count => Math.max(0, count - 1));
-      } else {
-        await this.profileService.followUser(this.profileUserId, currentUser.id);
-        this.isFollowingUser.set(true);
-        this.followersCount.update(count => count + 1);
-      }
-    } catch (error: any) {
-      console.error('Failed to toggle follow:', error);
-      alert(error.message || 'Failed to update follow status. Please try again.');
-    } finally {
-      this.isCheckingFollowStatus.set(false);
+    if (isFollowing) {
+      this.store.dispatch(ProfileActions.unfollowUser({
+        userId: this.profileUserId,
+        followerId: currentUser.id
+      }));
+    } else {
+      this.store.dispatch(ProfileActions.followUser({
+        userId: this.profileUserId,
+        followerId: currentUser.id
+      }));
     }
+
+    this.isCheckingFollowStatus.set(false);
   }
 }
 

@@ -1,7 +1,11 @@
 import { Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { SupabaseService } from './supabase.service';
+import { ProfileService } from './profile.service';
 import { User, Session, AuthError } from '@supabase/supabase-js';
+import * as ProfileActions from '../store/profile/profile.actions';
+import * as PostsActions from '../store/posts/posts.actions';
 
 export interface SignUpCredentials {
   email: string;
@@ -30,7 +34,9 @@ export class AuthService {
 
   constructor(
     private supabaseService: SupabaseService,
-    private router: Router
+    private router: Router,
+    private store: Store,
+    private profileService: ProfileService
   ) {
     this.initPromise = this.initAuth();
   }
@@ -40,6 +46,11 @@ export class AuthService {
     const { data: { session } } = await this.supabase.auth.getSession();
     this.session.set(session);
     this.currentUser.set(session?.user ?? null);
+
+    // Load initial data if user is already signed in
+    if (session?.user) {
+      this.loadInitialData(session.user);
+    }
 
     // Check if we have hash fragments from email callback and user is now authenticated
     if (session && typeof window !== 'undefined') {
@@ -56,8 +67,11 @@ export class AuthService {
       this.session.set(session);
       this.currentUser.set(session?.user ?? null);
       
-      // If user just signed in via email callback, redirect to app
+      // If user just signed in, load initial data and redirect to app
       if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        // Load initial data for the signed-in user
+        this.loadInitialData(session.user);
+
         // Check if we're coming from an email callback
         if (typeof window !== 'undefined') {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -71,6 +85,11 @@ export class AuthService {
             }
           }
         }
+      } else if (event === 'SIGNED_OUT') {
+        // Clear stores when user signs out through auth state change
+        this.store.dispatch(ProfileActions.clearProfile());
+        this.store.dispatch(PostsActions.clearPosts());
+        this.profileService.clearCache();
       }
     });
   }
@@ -140,7 +159,7 @@ export class AuthService {
     try {
       // Check if there's an active session before attempting to sign out
       const currentSession = this.session();
-      
+
       if (currentSession) {
         // Only call signOut if we have a valid session
         const { error } = await this.supabase.auth.signOut();
@@ -151,13 +170,21 @@ export class AuthService {
         }
       }
 
+      // Clear all stores and cache before clearing local state
+      this.store.dispatch(ProfileActions.clearProfile());
+      this.store.dispatch(PostsActions.clearPosts());
+      this.profileService.clearCache();
+
       // Always clear local state and redirect, even if there was no session
       this.session.set(null);
       this.currentUser.set(null);
       this.router.navigate(['/']);
     } catch (err) {
-      // Even if there's an error, clear local state and redirect
+      // Even if there's an error, clear stores/cache and local state, then redirect
       console.warn('Sign out error (clearing local state anyway):', err);
+      this.store.dispatch(ProfileActions.clearProfile());
+      this.store.dispatch(PostsActions.clearPosts());
+      this.profileService.clearCache();
       this.session.set(null);
       this.currentUser.set(null);
       this.router.navigate(['/']);
@@ -168,6 +195,18 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return this.session() !== null;
+  }
+
+  /**
+   * Load initial data when user signs in
+   */
+  private loadInitialData(user: User): void {
+    // Dispatch action to load posts for the signed-in user
+    this.store.dispatch(PostsActions.loadPosts({
+      limit: 50,
+      tags: undefined,
+      currentUserId: user.id
+    }));
   }
 }
 

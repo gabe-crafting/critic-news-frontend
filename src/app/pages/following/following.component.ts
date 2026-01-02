@@ -71,6 +71,7 @@ export class FollowingComponent implements OnInit {
     try {
       const posts = await this.postsService.getPostsFromFollowing(user.id);
       this.followingPosts.set(posts);
+      // Share statuses are now checked lazily when user hovers/clicks share button
     } catch (error) {
       console.error('Failed to load following posts:', error);
       this.followingPosts.set([]);

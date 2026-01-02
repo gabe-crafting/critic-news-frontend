@@ -5,18 +5,20 @@
       <!-- Profile Photo -->
       <div class="relative group">
         <div class="w-32 h-32 rounded-full bg-gray-200 p-0.5 border-4 border-gray-300 shadow-lg overflow-hidden relative">
-          @if (profilePictureUrl) {
-            <img
-              [src]="profilePictureUrl"
-              [alt]="displayName"
-              class="w-full h-full object-cover rounded-full"
-            />
-          } @else {
-            <div class="w-full h-full rounded-full bg-gray-200 flex items-center justify-center">
-              <span class="text-5xl font-semibold text-gray-700">
-                {{ profileInitial }}
-              </span>
-            </div>
+          @if (currentProfile$ | async; as profile) {
+            @if (profile?.profile_picture_url) {
+              <img
+                [src]="profile.profile_picture_url"
+                [alt]="profile?.name || 'User'"
+                class="w-full h-full object-cover rounded-full"
+              />
+              } @else {
+              <div class="w-full h-full rounded-full bg-gray-200 flex items-center justify-center">
+                <span class="text-5xl font-semibold text-gray-700">
+                  {{ (profile?.name || 'U').charAt(0).toUpperCase() }}
+                </span>
+              </div>
+            }
           }
           <!-- Upload overlay button - only visible on hover and if owner -->
           @if (isOwner) {
@@ -26,11 +28,11 @@
                   type="file"
                   accept="image/*"
                   (change)="onFileSelected($event)"
-                  [disabled]="profileService.isLoading()"
+                  [disabled]="profileLoading$ | async"
                   class="hidden"
                 />
                 <span class="text-white opacity-0 group-hover:opacity-100 text-sm font-medium px-3 py-1 bg-blue-600 rounded-md hover:bg-blue-700 transition-opacity">
-                  @if (profileService.isLoading()) {
+                  @if (profileLoading$ | async) {
                     Uploading...
                   } @else {
                     Change Photo
@@ -41,10 +43,10 @@
           }
         </div>
         <!-- Delete button (only show if picture exists and user is owner) -->
-        @if (profilePictureUrl && isOwner) {
+        @if ((currentProfile$ | async)?.profile_picture_url && isOwner) {
           <button
             (click)="deleteProfilePicture()"
-            [disabled]="profileService.isLoading()"
+            [disabled]="profileLoading$ | async"
             class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             title="Delete profile picture"
           >
@@ -58,7 +60,7 @@
         <div class="flex flex-col items-center gap-2">
           <div class="flex items-center gap-3">
             <h1 class="text-3xl font-bold text-gray-900">
-              {{ displayName }}
+              {{ (currentProfile$ | async)?.name || 'John Doe' }}
             </h1>
             @if (isOwner) {
               <button
@@ -70,14 +72,14 @@
             } @else if (authService.currentUser()) {
               <button
                 (click)="toggleFollow()"
-                [disabled]="isCheckingFollowStatus()"
-                [class]="isFollowingUser() 
+                [disabled]="isCheckingFollowStatus() || (profileLoading$ | async)"
+                [class]="(isFollowingUser$ | async)
                   ? 'px-4 py-1 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                   : 'px-4 py-1 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md'"
               >
-                @if (isCheckingFollowStatus()) {
+                @if (isCheckingFollowStatus() || (profileLoading$ | async)) {
                   ...
-                } @else if (isFollowingUser()) {
+                } @else if (isFollowingUser$ | async) {
                   Following
                 } @else {
                   Follow
@@ -86,15 +88,15 @@
             }
           </div>
           <p class="text-gray-700 text-base leading-relaxed max-w-2xl">
-            {{ displayDescription }}
+            {{ (currentProfile$ | async)?.description || '' }}
           </p>
           <!-- Follow stats -->
           <div class="flex items-center gap-4 text-gray-600 text-sm mt-2">
             <span>
-              <span class="font-semibold">{{ followersCount() }}</span> followers
+              <span class="font-semibold">{{ followersCount$ | async }}</span> followers
             </span>
             <span>
-              <span class="font-semibold">{{ followingCount() }}</span> following
+              <span class="font-semibold">{{ followingCount$ | async }}</span> following
             </span>
           </div>
         </div>

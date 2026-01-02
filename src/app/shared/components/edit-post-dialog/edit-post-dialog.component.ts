@@ -5,8 +5,12 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { PostsService, Post, CreatePostData } from '../../../core/services/posts.service';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
+import { Post, CreatePostData } from '../../../core/services/posts.service';
 import { TagsInputComponent } from '../tags-input/tags-input.component';
+import * as PostsActions from '../../../core/store/posts/posts.actions';
+import * as PostsSelectors from '../../../core/store/posts/posts.selectors';
 
 export interface EditPostDialogData {
   post: Post;
@@ -31,12 +35,14 @@ export class EditPostDialogComponent {
   description = '';
   newsLink = '';
   tags: string[] = [];
+  isLoading$!: Observable<boolean>;
 
   constructor(
     public dialogRef: MatDialogRef<EditPostDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: EditPostDialogData,
-    public postsService: PostsService
+    private store: Store
   ) {
+    this.isLoading$ = this.store.select(PostsSelectors.selectPostsLoading);
     // Initialize form with existing post data
     this.description = data.post.description;
     this.newsLink = data.post.news_link;
@@ -61,21 +67,17 @@ export class EditPostDialogComponent {
       return;
     }
 
-    try {
-      const updateData: Partial<CreatePostData> = {
-        description: this.description.trim(),
-        news_link: this.newsLink.trim(),
-        tags: this.tags.length > 0 ? this.tags : undefined
-      };
+    const updateData: Partial<CreatePostData> = {
+      description: this.description.trim(),
+      news_link: this.newsLink.trim(),
+      tags: this.tags.length > 0 ? this.tags : undefined
+    };
 
-      const updatedPost = await this.postsService.updatePost(this.data.post.id, updateData);
-      this.dialogRef.close(updatedPost);
-    } catch (error: any) {
-      console.error('Failed to update post:', error);
-      const errorMessage = error?.message || error?.error?.message || 'Failed to update post. Please try again.';
-      alert(errorMessage);
-      // Dialog will remain open so user can retry
-    }
+    this.store.dispatch(PostsActions.updatePost({
+      postId: this.data.post.id,
+      updates: updateData
+    }));
+    this.dialogRef.close(true);
   }
 }
 

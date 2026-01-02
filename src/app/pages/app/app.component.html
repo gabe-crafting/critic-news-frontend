@@ -4,9 +4,12 @@
 >
   <!-- Posts List -->
   <div>
-    @if (postsService.isLoading() && postsService.posts().length === 0) {
-      <div class="p-8 text-center text-gray-500">Loading posts...</div>
-    } @else if (postsService.posts().length === 0) {
+    @if (isLoading$ | async; as isLoading) {
+      @if (isLoading && posts().length === 0) {
+        <div class="p-8 text-center text-gray-500">Loading posts...</div>
+      }
+    }
+    @if (posts().length === 0 && !(isLoading$ | async)) {
       <div class="p-8 text-center text-gray-500">No posts yet.</div>
     } @else {
       @for (post of filteredPosts(); track post.id) {

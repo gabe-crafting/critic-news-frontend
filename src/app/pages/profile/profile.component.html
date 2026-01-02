@@ -6,9 +6,9 @@
 <app-feed feedTitle="" [showSearch]="true" (searchChange)="onSearchChange($event)">
   <!-- Posts List -->
   <div>
-    @if (userPostsLoading()) {
+    @if (userPostsLoading$ | async) {
     <div class="p-8 text-center text-gray-500">Loading posts...</div>
-    } @else if (userPosts().length === 0) {
+    } @else if ((userPosts$ | async)?.length === 0) {
     <div class="p-8 text-center text-gray-500">
       @if (isOwner) {
       No posts yet. Create your first post!
@@ -17,7 +17,7 @@
       }
     </div>
     } @else {
-    @for (post of filteredPosts(); track post.id) {
+    @for (post of (userPosts$ | async) || []; track post.id) {
     <app-post [post]="post" [showDelete]="isOwner" (onDelete)="deletePost($event)"
       (onUpdate)="onPostUpdate($event)"></app-post>
     }

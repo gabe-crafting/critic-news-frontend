@@ -4,10 +4,12 @@ import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { Post, PostsService } from '../../../core/services/posts.service';
+import { Store } from '@ngrx/store';
+import { Post } from '../../../core/services/posts.service';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { EditPostDialogComponent, EditPostDialogData } from '../edit-post-dialog/edit-post-dialog.component';
+import * as PostsActions from '../../../core/store/posts/posts.actions';
 
 @Component({
   selector: 'app-post',
@@ -30,17 +32,12 @@ export class PostComponent implements OnInit {
     public profileService: ProfileService,
     public authService: AuthService,
     private dialog: MatDialog,
-    private postsService: PostsService
+    private store: Store
   ) {}
 
   async ngOnInit(): Promise<void> {
-    const user = this.authService.currentUser();
-    if (user) {
-      // Check if current user has shared this post
-      // Use original_post_id if it's a shared post, otherwise use post.id
-      const postIdToCheck = this.post.original_post_id || this.post.id;
-      this.isShared.set(await this.postsService.hasSharedPost(user.id, postIdToCheck));
-    }
+    // Use share status from post data (fetched via join in database)
+    this.isShared.set(this.post.is_shared_by_current_user || false);
   }
 
   get isOwner(): boolean {
@@ -140,7 +137,7 @@ export class PostComponent implements OnInit {
     });
   }
 
-  async toggleShare(): Promise<void> {
+  toggleShare(): void {
     const user = this.authService.currentUser();
     if (!user) {
       return;
@@ -150,22 +147,16 @@ export class PostComponent implements OnInit {
     const postIdToShare = this.post.original_post_id || this.post.id;
 
     this.isSharing.set(true);
-    try {
-      if (this.isShared()) {
-        await this.postsService.unsharePost(user.id, postIdToShare);
-        this.isShared.set(false);
-      } else {
-        await this.postsService.sharePost(user.id, postIdToShare);
-        this.isShared.set(true);
-      }
-      // Emit update to refresh profile if needed
-      this.onUpdate.emit(this.post);
-    } catch (error) {
-      console.error('Failed to toggle share:', error);
-      alert('Failed to share/unshare post. Please try again.');
-    } finally {
-      this.isSharing.set(false);
+    if (this.isShared()) {
+      this.store.dispatch(PostsActions.unsharePost({ userId: user.id, postId: postIdToShare }));
+      this.isShared.set(false);
+    } else {
+      this.store.dispatch(PostsActions.sharePost({ userId: user.id, postId: postIdToShare }));
+      this.isShared.set(true);
     }
+    // Store will update the post automatically via reducer
+    this.onUpdate.emit(this.post);
+    this.isSharing.set(false);
   }
 
   getSharedByUserName(): string {

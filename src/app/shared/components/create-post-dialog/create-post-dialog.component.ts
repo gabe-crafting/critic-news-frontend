@@ -5,9 +5,12 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { PostsService } from '../../../core/services/posts.service';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
 import { ProfileService } from '../../../core/services/profile.service';
 import { TagsInputComponent } from '../tags-input/tags-input.component';
+import * as PostsActions from '../../../core/store/posts/posts.actions';
+import * as PostsSelectors from '../../../core/store/posts/posts.selectors';
 
 export interface CreatePostDialogData {
   userId: string;
@@ -32,13 +35,16 @@ export class CreatePostDialogComponent {
   description = '';
   newsLink = '';
   tags: string[] = [];
+  isLoading$!: Observable<boolean>;
 
   constructor(
     public dialogRef: MatDialogRef<CreatePostDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: CreatePostDialogData,
-    public postsService: PostsService,
+    private store: Store,
     private profileService: ProfileService
-  ) {}
+  ) {
+    this.isLoading$ = this.store.select(PostsSelectors.selectPostsLoading);
+  }
 
   onCancel(): void {
     this.dialogRef.close();
@@ -70,19 +76,15 @@ export class CreatePostDialogComponent {
       return;
     }
 
-    try {
-      const newPost = await this.postsService.createPost(this.data.userId, {
+    this.store.dispatch(PostsActions.createPost({
+      userId: this.data.userId,
+      postData: {
         description: this.description.trim(),
         news_link: this.newsLink.trim(),
         tags: this.tags.length > 0 ? this.tags : undefined
-      });
-      this.dialogRef.close(newPost);
-    } catch (error: any) {
-      console.error('Failed to create post:', error);
-      const errorMessage = error?.message || error?.error?.message || 'Failed to create post. Please try again.';
-      alert(errorMessage);
-      // Dialog will remain open so user can retry
-    }
+      }
+    }));
+    this.dialogRef.close(true);
   }
 }
 

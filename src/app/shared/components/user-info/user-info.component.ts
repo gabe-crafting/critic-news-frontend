@@ -1,8 +1,11 @@
 import { Component, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProfileService } from '../../../core/services/profile.service';
+import * as ProfileSelectors from '../../../core/store/profile/profile.selectors';
 
 @Component({
   selector: 'app-user-info',
@@ -14,33 +17,23 @@ import { ProfileService } from '../../../core/services/profile.service';
 export class UserInfoComponent {
   constructor(
     public authService: AuthService,
-    public profileService: ProfileService
+    public profileService: ProfileService,
+    private store: Store
   ) {
-    // Load profile when user changes
+    // Load current user's profile when user changes
     effect(() => {
       const user = this.authService.currentUser();
       if (user) {
-        this.profileService.getProfile(user.id).catch(err => {
-          // Profile might not exist yet, that's okay
-        });
+        // Load the current user's profile specifically
+        const currentProfile = this.profileService.currentProfile();
+        // Only fetch if profile is not already loaded or if it's for a different user
+        if (!currentProfile || currentProfile.id !== user.id) {
+          this.profileService.getProfile(user.id).catch(err => {
+            // Profile might not exist yet, that's okay
+          });
+        }
       }
     });
-  }
-
-  get profilePictureUrl(): string | null {
-    return this.profileService.currentProfile()?.profile_picture_url || null;
-  }
-
-  get displayName(): string {
-    const profile = this.profileService.currentProfile();
-    if (profile?.name) {
-      return profile.name;
-    }
-    return 'John Doe';
-  }
-
-  get profileInitial(): string {
-    return this.displayName.charAt(0).toUpperCase();
   }
 
   get profileRoute(): string {

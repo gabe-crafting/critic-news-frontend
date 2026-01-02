@@ -20,6 +20,7 @@ export interface Post {
     profile_picture_url: string | null;
   } | null;
   original_post_id?: string | null;
+  is_shared_by_current_user?: boolean;
 }
 
 export interface CreatePostData {
@@ -41,22 +42,30 @@ export class PostsService {
   readonly isLoading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
 
+  // Cache for share statuses: Map<userId, Map<postId, boolean>>
+  private shareStatusCache = new Map<string, Map<string, boolean>>();
+  // Track pending batch requests to prevent duplicates
+  private pendingShareStatusRequests = new Map<string, Promise<Map<string, boolean>>>();
+
   constructor(private supabaseService: SupabaseService) {}
 
   /**
    * Get all posts, ordered by creation date (newest first)
    * @param limit Maximum number of posts to return
    * @param tags Optional array of tags to filter by (posts must contain at least one of these tags)
+   * @param currentUserId Optional user ID to check if posts are shared by current user
    */
-  async getPosts(limit = 50, tags?: string[]): Promise<Post[]> {
+  async getPosts(limit = 50, tags?: string[], currentUserId?: string): Promise<Post[]> {
     this.isLoading.set(true);
     this.error.set(null);
 
     try {
-      // Build query
+      // Build query with join to user_profiles
+      let selectQuery = '*, user_profiles!inner(id, name, profile_picture_url)';
+      
       let query = this.supabase
         .from('posts')
-        .select('*');
+        .select(selectQuery);
 
       // Filter by tags if provided
       if (tags && tags.length > 0) {
@@ -74,31 +83,36 @@ export class PostsService {
       }
 
       if (!postsData || postsData.length === 0) {
-        this.posts.set([]);
         return [];
       }
 
-      // Get unique user IDs
-      const userIds = [...new Set(postsData.map(post => post.user_id))];
+      // Get share statuses for current user if provided
+      let shareStatusMap = new Map<string, boolean>();
+      if (currentUserId) {
+        const postIds = postsData.map((post: any) => post.id);
+        const { data: sharesData } = await this.supabase
+          .from('post_shares')
+          .select('post_id')
+          .eq('user_id', currentUserId)
+          .in('post_id', postIds);
 
-      // Fetch user profiles
-      const { data: profilesData } = await this.supabase
-        .from('user_profiles')
-        .select('id, name, profile_picture_url')
-        .in('id', userIds);
+        if (sharesData) {
+          sharesData.forEach(share => {
+            shareStatusMap.set(share.post_id, true);
+          });
+        }
+      }
 
-      // Create a map of user_id to profile
-      const profilesMap = new Map(
-        (profilesData || []).map(profile => [profile.id, profile])
-      );
+      // Combine posts with share status (profiles already included via join)
+      const postsWithProfiles = postsData.map((post: any) => {
+        const postId = post.original_post_id || post.id;
+        return {
+          ...post,
+          is_shared_by_current_user: currentUserId ? (shareStatusMap.get(postId) || false) : false
+        };
+      });
 
-      // Combine posts with profiles
-      const postsWithProfiles = postsData.map(post => ({
-        ...post,
-        user_profiles: profilesMap.get(post.user_id) || null
-      }));
-
-      this.posts.set(postsWithProfiles);
+      // Don't update signals - store will handle state updates
       return postsWithProfiles;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to fetch posts');
@@ -110,108 +124,84 @@ export class PostsService {
 
   /**
    * Get posts by a specific user
+   * @param userId The user whose posts to fetch
+   * @param limit Maximum number of posts to return
+   * @param currentUserId Optional user ID to check if posts are shared by current user (viewer)
+   * @param sharerProfile Optional profile data to avoid redundant fetch (should match userId)
    */
-  async getPostsByUser(userId: string, limit = 50): Promise<Post[]> {
+  async getPostsByUser(
+    userId: string,
+    limit = 50,
+    currentUserId?: string,
+    sharerProfile?: { id: string; name: string | null; profile_picture_url: string | null } | null
+  ): Promise<Post[]> {
     this.isLoading.set(true);
     this.error.set(null);
 
     try {
-      // Get posts created by the user
-      const { data: postsData, error: postsError } = await this.supabase
-        .from('posts')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      // Fetch posts and shares in parallel
+      const [postsResult, sharesResult] = await Promise.all([
+        // Regular posts with profiles
+        this.supabase
+          .from('posts')
+          .select('*, user_profiles!inner(id, name, profile_picture_url)')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        
+        // Shared posts
+        this.supabase
+          .from('post_shares')
+          .select('post_id, created_at')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(limit)
+      ]);
 
-      if (postsError) {
-        throw postsError;
-      }
+      if (postsResult.error) throw postsResult.error;
+      if (sharesResult.error) throw sharesResult.error;
 
-      // Get posts shared by the user
-      const { data: sharesData, error: sharesError } = await this.supabase
-        .from('post_shares')
-        .select('post_id, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (sharesError) {
-        throw sharesError;
-      }
-
-      // Process regular posts
-      const regularPosts: Post[] = [];
-      if (postsData && postsData.length > 0) {
-        // Fetch user profile (may not exist, so use maybeSingle())
-        const { data: profileData } = await this.supabase
+      const postsData = postsResult.data || [];
+      const sharesData = sharesResult.data || [];
+      
+      // Use provided profile or fetch if needed
+      let finalSharerProfile = sharerProfile;
+      if (finalSharerProfile === undefined && sharesData.length > 0) {
+        const sharerProfileResult = await this.supabase
           .from('user_profiles')
           .select('id, name, profile_picture_url')
           .eq('id', userId)
           .maybeSingle();
-
-        // Combine posts with profile
-        const postsWithProfile = postsData.map(post => ({
-          ...post,
-          user_profiles: profileData || null
-        }));
-        regularPosts.push(...postsWithProfile);
+        finalSharerProfile = sharerProfileResult.data;
       }
 
-      // Process shared posts
+      // Process shared posts if any
       const sharedPosts: Post[] = [];
-      if (sharesData && sharesData.length > 0) {
-        // Get post IDs from shares
+      if (sharesData.length > 0) {
         const postIds = sharesData.map(share => share.post_id);
+        const sharesMap = new Map(sharesData.map(share => [share.post_id, share]));
         
-        // Fetch the original posts
+        // Fetch original posts with profiles
         const { data: originalPostsData, error: originalPostsError } = await this.supabase
           .from('posts')
-          .select('*')
+          .select('*, user_profiles!inner(id, name, profile_picture_url)')
           .in('id', postIds);
 
-        if (originalPostsError) {
-          throw originalPostsError;
-        }
+        if (originalPostsError) throw originalPostsError;
 
-        // Get user IDs from original posts
-        const originalUserIds = [...new Set((originalPostsData || []).map(p => p.user_id))];
-        
-        // Fetch user profiles for original post authors
-        const { data: originalProfilesData } = await this.supabase
-          .from('user_profiles')
-          .select('id, name, profile_picture_url')
-          .in('id', originalUserIds);
-
-        // Create a map of user_id to profile
-        const originalProfilesMap = new Map(
-          (originalProfilesData || []).map(profile => [profile.id, profile])
-        );
-
-        // Get current user profile for shared_by
-        const { data: sharerProfile } = await this.supabase
-          .from('user_profiles')
-          .select('id, name, profile_picture_url')
-          .eq('id', userId)
-          .maybeSingle();
-
-        // Create a map of post_id to share data
-        const sharesMap = new Map(sharesData.map(share => [share.post_id, share]));
-
-        // Combine original posts with share data
+        // Build shared posts array
         for (const originalPost of originalPostsData || []) {
           const share = sharesMap.get(originalPost.id);
           if (share) {
             sharedPosts.push({
               ...originalPost,
               original_post_id: originalPost.id,
-              id: `share-${share.post_id}-${userId}`, // Unique ID for shared post
-              created_at: share.created_at, // Use share date
-              user_profiles: originalProfilesMap.get(originalPost.user_id) || null,
-              shared_by: sharerProfile ? {
-                id: sharerProfile.id,
-                name: sharerProfile.name,
-                profile_picture_url: sharerProfile.profile_picture_url
+              id: `share-${share.post_id}-${userId}`,
+              created_at: share.created_at,
+              shared_by: finalSharerProfile ? {
+                id: finalSharerProfile.id,
+                name: finalSharerProfile.name,
+                profile_picture_url: finalSharerProfile.profile_picture_url
               } : null
             });
           }
@@ -219,9 +209,34 @@ export class PostsService {
       }
 
       // Combine and sort by created_at (most recent first)
-      const allPosts = [...regularPosts, ...sharedPosts].sort((a, b) => 
+      const allPosts = [...postsData, ...sharedPosts].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ).slice(0, limit);
+
+      // Get share statuses for current user if provided
+      if (currentUserId && allPosts.length > 0) {
+        const postIds = allPosts.map(post => post.original_post_id || post.id);
+        const { data: currentUserSharesData } = await this.supabase
+          .from('post_shares')
+          .select('post_id')
+          .eq('user_id', currentUserId)
+          .in('post_id', postIds);
+
+        const shareStatusSet = new Set(
+          (currentUserSharesData || []).map(share => share.post_id)
+        );
+
+        // Add share status in single pass
+        allPosts.forEach(post => {
+          const postId = post.original_post_id || post.id;
+          (post as any).is_shared_by_current_user = shareStatusSet.has(postId);
+        });
+      } else {
+        // Set to false in single pass
+        allPosts.forEach(post => {
+          (post as any).is_shared_by_current_user = false;
+        });
+      }
 
       this.isLoading.set(false);
       return allPosts;
@@ -251,7 +266,6 @@ export class PostsService {
       }
 
       if (!followingData || followingData.length === 0) {
-        this.posts.set([]);
         this.isLoading.set(false);
         return [];
       }
@@ -259,10 +273,10 @@ export class PostsService {
       // Extract user IDs
       const followingUserIds = followingData.map(f => f.user_id);
 
-      // Get posts from those users
+      // Get posts from those users with user profiles joined
       const { data: postsData, error: postsError } = await this.supabase
         .from('posts')
-        .select('*')
+        .select('*, user_profiles!inner(id, name, profile_picture_url)')
         .in('user_id', followingUserIds)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -272,32 +286,35 @@ export class PostsService {
       }
 
       if (!postsData || postsData.length === 0) {
-        this.posts.set([]);
         this.isLoading.set(false);
         return [];
       }
 
-      // Get unique user IDs
-      const userIds = [...new Set(postsData.map(post => post.user_id))];
+      // Get share statuses for current user
+      const postIds = postsData.map((post: any) => post.id);
+      const { data: sharesData } = await this.supabase
+        .from('post_shares')
+        .select('post_id')
+        .eq('user_id', followerId)
+        .in('post_id', postIds);
 
-      // Fetch user profiles
-      const { data: profilesData } = await this.supabase
-        .from('user_profiles')
-        .select('id, name, profile_picture_url')
-        .in('id', userIds);
+      const shareStatusMap = new Map<string, boolean>();
+      if (sharesData) {
+        sharesData.forEach(share => {
+          shareStatusMap.set(share.post_id, true);
+        });
+      }
 
-      // Create a map of user_id to profile
-      const profilesMap = new Map(
-        (profilesData || []).map(profile => [profile.id, profile])
-      );
+      // Combine posts with share status (profiles already included via join)
+      const postsWithProfiles = postsData.map((post: any) => {
+        const postId = post.original_post_id || post.id;
+        return {
+          ...post,
+          is_shared_by_current_user: shareStatusMap.get(postId) || false
+        };
+      });
 
-      // Combine posts with profiles
-      const postsWithProfiles = postsData.map(post => ({
-        ...post,
-        user_profiles: profilesMap.get(post.user_id) || null
-      }));
-
-      this.posts.set(postsWithProfiles);
+      // Don't update signals - store will handle state updates
       this.isLoading.set(false);
       return postsWithProfiles;
     } catch (err: any) {
@@ -357,11 +374,11 @@ export class PostsService {
       // Combine post with profile
       const data = {
         ...postDataResult,
-        user_profiles: fullProfileData || null
+        user_profiles: fullProfileData || null,
+        is_shared_by_current_user: false
       };
 
-      // Add new post to the beginning of the posts array
-      this.posts.update(posts => [data, ...posts]);
+      // Don't update signals - store will handle state updates
       return data;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to create post');
@@ -403,10 +420,7 @@ export class PostsService {
         user_profiles: profileData || null
       };
 
-      // Update post in the posts array
-      this.posts.update(posts =>
-        posts.map(post => (post.id === postId ? updatedPost : post))
-      );
+      // Don't update signals - store will handle state updates
       return updatedPost;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to update post');
@@ -433,8 +447,7 @@ export class PostsService {
         throw error;
       }
 
-      // Remove post from the posts array
-      this.posts.update(posts => posts.filter(post => post.id !== postId));
+      // Don't update signals - store will handle state updates
     } catch (err: any) {
       this.error.set(err.message || 'Failed to delete post');
       throw err;
@@ -495,6 +508,14 @@ export class PostsService {
       if (error) {
         throw error;
       }
+
+      // Update cache
+      let userCache = this.shareStatusCache.get(userId);
+      if (!userCache) {
+        userCache = new Map();
+        this.shareStatusCache.set(userId, userCache);
+      }
+      userCache.set(postId, true);
     } catch (err: any) {
       console.error('Failed to share post:', err);
       throw err;
@@ -515,6 +536,12 @@ export class PostsService {
       if (error) {
         throw error;
       }
+
+      // Update cache
+      const userCache = this.shareStatusCache.get(userId);
+      if (userCache) {
+        userCache.set(postId, false);
+      }
     } catch (err: any) {
       console.error('Failed to unshare post:', err);
       throw err;
@@ -522,25 +549,121 @@ export class PostsService {
   }
 
   /**
-   * Check if a user has shared a post
+   * Batch fetch share statuses for multiple posts for a user
+   * This prevents N+1 queries when checking share status for many posts
    */
-  async hasSharedPost(userId: string, postId: string): Promise<boolean> {
+  async getShareStatusesForPosts(userId: string, postIds: string[]): Promise<Map<string, boolean>> {
+    if (postIds.length === 0) {
+      return new Map();
+    }
+
+    // Check if we have a pending request for this user
+    const cacheKey = userId;
+    if (this.pendingShareStatusRequests.has(cacheKey)) {
+      const pendingResult = await this.pendingShareStatusRequests.get(cacheKey)!;
+      // Filter to only return statuses for requested postIds
+      const result = new Map<string, boolean>();
+      postIds.forEach(postId => {
+        result.set(postId, pendingResult.get(postId) || false);
+      });
+      return result;
+    }
+
+    // Check cache first
+    const userCache = this.shareStatusCache.get(userId);
+    if (userCache) {
+      const allCached = postIds.every(postId => userCache.has(postId));
+      if (allCached) {
+        const result = new Map<string, boolean>();
+        postIds.forEach(postId => {
+          result.set(postId, userCache.get(postId) || false);
+        });
+        return result;
+      }
+    }
+
+    // Fetch missing share statuses
+    const requestPromise = this.fetchShareStatuses(userId, postIds);
+    this.pendingShareStatusRequests.set(cacheKey, requestPromise);
+
+    try {
+      const result = await requestPromise;
+      return result;
+    } finally {
+      this.pendingShareStatusRequests.delete(cacheKey);
+    }
+  }
+
+  /**
+   * Internal method to fetch share statuses from database
+   */
+  private async fetchShareStatuses(userId: string, postIds: string[]): Promise<Map<string, boolean>> {
     try {
       const { data, error } = await this.supabase
         .from('post_shares')
-        .select('id')
+        .select('post_id')
         .eq('user_id', userId)
-        .eq('post_id', postId)
-        .maybeSingle();
+        .in('post_id', postIds);
 
       if (error) {
         throw error;
       }
 
-      return !!data;
+      // Create a set of shared post IDs
+      const sharedPostIds = new Set((data || []).map(share => share.post_id));
+
+      // Build result map
+      const result = new Map<string, boolean>();
+      postIds.forEach(postId => {
+        result.set(postId, sharedPostIds.has(postId));
+      });
+
+      // Update cache
+      let userCache = this.shareStatusCache.get(userId);
+      if (!userCache) {
+        userCache = new Map();
+        this.shareStatusCache.set(userId, userCache);
+      }
+      result.forEach((isShared, postId) => {
+        userCache!.set(postId, isShared);
+      });
+
+      return result;
     } catch (err: any) {
-      console.error('Failed to check if post is shared:', err);
-      return false;
+      console.error('Failed to fetch share statuses:', err);
+      // Return all false on error
+      const result = new Map<string, boolean>();
+      postIds.forEach(postId => {
+        result.set(postId, false);
+      });
+      return result;
+    }
+  }
+
+  /**
+   * Check if a user has shared a post
+   * Uses cache if available, otherwise makes a single request
+   */
+  async hasSharedPost(userId: string, postId: string): Promise<boolean> {
+    // Check cache first
+    const userCache = this.shareStatusCache.get(userId);
+    if (userCache?.has(postId)) {
+      return userCache.get(postId) || false;
+    }
+
+    // If not in cache, fetch it (will also cache it)
+    const statuses = await this.getShareStatusesForPosts(userId, [postId]);
+    return statuses.get(postId) || false;
+  }
+
+  /**
+   * Clear share status cache for a user (useful on logout or when shares change)
+   */
+  clearShareStatusCache(userId?: string): void {
+    if (userId) {
+      this.shareStatusCache.delete(userId);
+    } else {
+      this.shareStatusCache.clear();
     }
   }
 }

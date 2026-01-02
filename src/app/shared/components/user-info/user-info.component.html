@@ -2,24 +2,34 @@
   <a [routerLink]="profileRoute" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
     <!-- Profile Picture -->
     <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-300 flex-shrink-0">
-      @if (profilePictureUrl) {
-        <img
-          [src]="profilePictureUrl"
-          [alt]="displayName"
-          class="w-full h-full object-cover"
-        />
+      @if (profileService.currentProfile(); as profile) {
+        @if (profile?.profile_picture_url) {
+          <img
+            [src]="profile.profile_picture_url"
+            [alt]="profile?.name || 'User'"
+            class="w-full h-full object-cover"
+          />
+        } @else {
+          <div class="w-full h-full bg-gray-200 flex items-center justify-center">
+            <span class="text-lg font-semibold text-gray-600">
+              {{ (profile?.name || 'U').charAt(0).toUpperCase() }}
+            </span>
+          </div>
+        }
       } @else {
         <div class="w-full h-full bg-gray-200 flex items-center justify-center">
-          <span class="text-lg font-semibold text-gray-600">
-            {{ profileInitial }}
-          </span>
+          <span class="text-lg font-semibold text-gray-600">U</span>
         </div>
       }
     </div>
 
     <!-- Profile Info -->
     <div class="flex-1 min-w-0">
-      <p class="text-sm font-semibold text-gray-900 truncate">{{ displayName }}</p>
+      @if (profileService.currentProfile(); as profile) {
+        <p class="text-sm font-semibold text-gray-900 truncate">{{ profile?.name || 'John Doe' }}</p>
+      } @else {
+        <p class="text-sm font-semibold text-gray-900 truncate">John Doe</p>
+      }
       <p class="text-xs text-gray-600 truncate">{{ user.email }}</p>
     </div>
   </a>

@@ -32,16 +32,16 @@
 </mat-dialog-content>
 
 <mat-dialog-actions class="flex justify-end gap-2">
-  <button mat-button (click)="onCancel()" [disabled]="postsService.isLoading()">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading$ | async">
     Cancel
   </button>
   <button 
     mat-raised-button 
     color="primary" 
     (click)="onSave()" 
-    [disabled]="postsService.isLoading()"
+    [disabled]="isLoading$ | async"
   >
-    @if (postsService.isLoading()) {
+    @if (isLoading$ | async) {
       Saving...
     } @else {
       Save

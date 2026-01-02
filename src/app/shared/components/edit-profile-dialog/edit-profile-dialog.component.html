@@ -21,16 +21,16 @@
 </mat-dialog-content>
 
 <mat-dialog-actions class="flex justify-end gap-2">
-  <button mat-button (click)="onCancel()" [disabled]="profileService.isLoading()">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading$ | async">
     Cancel
   </button>
-  <button 
-    mat-raised-button 
-    color="primary" 
-    (click)="onSave()" 
-    [disabled]="profileService.isLoading()"
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="onSave()"
+    [disabled]="isLoading$ | async"
   >
-    @if (profileService.isLoading()) {
+    @if (isLoading$ | async) {
       Saving...
     } @else {
       Save

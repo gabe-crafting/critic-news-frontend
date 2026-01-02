@@ -24,12 +24,60 @@ export class ProfileService {
   readonly isLoading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
 
+  // Cache for profiles by user ID
+  private profileCache = new Map<string, UserProfile | null>();
+  // Track pending requests to prevent duplicate concurrent requests
+  private pendingRequests = new Map<string, Promise<UserProfile | null>>();
+
   constructor(private supabaseService: SupabaseService) {}
 
   /**
-   * Get user profile by user ID
+   * Clear the profile cache
+   * Useful when user logs out or when you want to force fresh data
    */
-  async getProfile(userId: string): Promise<UserProfile | null> {
+  clearCache(): void {
+    this.profileCache.clear();
+    this.pendingRequests.clear();
+    this.currentProfile.set(null);
+  }
+
+  /**
+   * Get user profile by user ID
+   * Uses caching to prevent duplicate requests
+   */
+  async getProfile(userId: string, forceRefresh = false): Promise<UserProfile | null> {
+    // Check cache first (unless forcing refresh)
+    if (!forceRefresh && this.profileCache.has(userId)) {
+      const cachedProfile = this.profileCache.get(userId)!; // Safe because we checked has() above
+      // Update currentProfile signal if this is the current user's profile
+      const currentProfile = this.currentProfile();
+      if (currentProfile?.id === userId || !currentProfile) {
+        this.currentProfile.set(cachedProfile);
+      }
+      return cachedProfile;
+    }
+
+    // Check if there's already a pending request for this user
+    if (this.pendingRequests.has(userId)) {
+      return this.pendingRequests.get(userId)!;
+    }
+
+    // Create new request
+    const requestPromise = this.fetchProfile(userId);
+    this.pendingRequests.set(userId, requestPromise);
+
+    try {
+      const profile = await requestPromise;
+      return profile;
+    } finally {
+      this.pendingRequests.delete(userId);
+    }
+  }
+
+  /**
+   * Internal method to fetch profile from database
+   */
+  private async fetchProfile(userId: string): Promise<UserProfile | null> {
     this.isLoading.set(true);
     this.error.set(null);
 
@@ -43,13 +91,22 @@ export class ProfileService {
       if (error) {
         // If profile doesn't exist, return null (not an error)
         if (error.code === 'PGRST116') {
+          this.profileCache.set(userId, null);
           this.currentProfile.set(null);
           return null;
         }
         throw error;
       }
 
-      this.currentProfile.set(data);
+      // Cache the profile
+      this.profileCache.set(userId, data);
+      
+      // Update currentProfile signal if this is the current user's profile
+      const currentProfile = this.currentProfile();
+      if (currentProfile?.id === userId || !currentProfile) {
+        this.currentProfile.set(data);
+      }
+      
       return data;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to fetch profile');
@@ -89,9 +146,6 @@ export class ProfileService {
    * Create or update user profile
    */
   async upsertProfile(userId: string, profile: { name?: string; description?: string }): Promise<UserProfile> {
-    this.isLoading.set(true);
-    this.error.set(null);
-
     try {
       const { data, error } = await this.supabase
         .from('user_profiles')
@@ -112,23 +166,17 @@ export class ProfileService {
         throw error;
       }
 
-      this.currentProfile.set(data);
       return data;
     } catch (err: any) {
-      this.error.set(err.message || 'Failed to save profile');
+      console.error('Failed to save profile:', err);
       throw err;
-    } finally {
-      this.isLoading.set(false);
     }
   }
 
   /**
    * Update user profile
    */
-  async updateProfile(userId: string, updates: { name?: string; description?: string; profile_picture_url?: string }): Promise<UserProfile> {
-    this.isLoading.set(true);
-    this.error.set(null);
-
+  async updateProfile(userId: string, updates: { name?: string; description?: string; profile_picture_url?: string | null }): Promise<UserProfile> {
     try {
       const { data, error } = await this.supabase
         .from('user_profiles')
@@ -141,13 +189,10 @@ export class ProfileService {
         throw error;
       }
 
-      this.currentProfile.set(data);
       return data;
     } catch (err: any) {
-      this.error.set(err.message || 'Failed to update profile');
+      console.error('Failed to update profile:', err);
       throw err;
-    } finally {
-      this.isLoading.set(false);
     }
   }
 
@@ -219,9 +264,9 @@ export class ProfileService {
    * Upload profile picture to Supabase Storage
    * @param userId User ID
    * @param file Image file to upload
-   * @returns Public URL of uploaded image
+   * @returns Updated user profile
    */
-  async uploadProfilePicture(userId: string, file: File): Promise<string> {
+  async uploadProfilePicture(userId: string, file: File): Promise<UserProfile> {
     this.isLoading.set(true);
     this.error.set(null);
 
@@ -274,9 +319,9 @@ export class ProfileService {
       }
 
       // Update profile with new picture URL
-      await this.updateProfile(userId, { profile_picture_url: urlData.publicUrl });
+      const updatedProfile = await this.updateProfile(userId, { profile_picture_url: urlData.publicUrl });
 
-      return urlData.publicUrl;
+      return updatedProfile;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to upload profile picture');
       throw err;
@@ -288,14 +333,19 @@ export class ProfileService {
   /**
    * Delete profile picture
    */
-  async deleteProfilePicture(userId: string): Promise<void> {
+  async deleteProfilePicture(userId: string): Promise<UserProfile> {
     this.isLoading.set(true);
     this.error.set(null);
 
     try {
       const profile = this.currentProfile();
       if (!profile?.profile_picture_url) {
-        return;
+        // If no profile picture, get the current profile and return it unchanged
+        const currentProfile = await this.getProfile(userId);
+        if (!currentProfile) {
+          throw new Error('Profile not found');
+        }
+        return currentProfile;
       }
 
       // Extract file path from URL (format: .../profile-pictures/userId/filename)
@@ -317,7 +367,9 @@ export class ProfileService {
       }
 
       // Update profile to remove URL
-      await this.updateProfile(userId, { profile_picture_url: undefined });
+      const updatedProfile = await this.updateProfile(userId, { profile_picture_url: null });
+
+      return updatedProfile;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to delete profile picture');
       throw err;
@@ -515,17 +567,19 @@ export class ProfileService {
           throw updateError;
         }
 
-        // Update the current profile signal if it's the current user's profile
+        // Update the current profile signal and cache if it's the current user's profile
         const currentProfile = this.currentProfile();
         if (currentProfile && currentProfile.id === userId) {
           const updatedProfile = { ...currentProfile, usually_viewed_tags: updatedTags };
           this.currentProfile.set(updatedProfile);
+          // Update cache
+          this.profileCache.set(userId, updatedProfile);
         } else {
-          // If profile is not loaded, reload it to get updated tags
+          // If profile is not loaded, reload it to get updated tags (will use cache if available)
           try {
             const { data: { user } } = await this.supabase.auth.getUser();
             if (user && user.id === userId) {
-              await this.getProfile(userId);
+              await this.getProfile(userId, true); // Force refresh to get updated tags
             }
           } catch (err) {
             console.warn('Could not reload profile after tracking tag:', err);
@@ -536,6 +590,36 @@ export class ProfileService {
     } catch (err: any) {
       console.error('Failed to track tag view:', err);
       // Don't throw - this is a non-critical operation
+    }
+  }
+
+  /**
+   * Get profile with follow data (profile, isFollowing status, followers/following counts)
+   */
+  async getProfileWithFollowData(userId: string, currentUserId?: string): Promise<{
+    profile: UserProfile | null;
+    isFollowing: boolean;
+    followersCount: number;
+    followingCount: number;
+  }> {
+    try {
+      // Get all data in parallel for better performance
+      const [profile, isFollowing, followersCount, followingCount] = await Promise.all([
+        this.getProfile(userId),
+        currentUserId ? this.isFollowing(userId, currentUserId) : Promise.resolve(false),
+        this.getFollowersCount(userId),
+        this.getFollowingCount(userId)
+      ]);
+
+      return {
+        profile,
+        isFollowing,
+        followersCount,
+        followingCount
+      };
+    } catch (err: any) {
+      console.error('Failed to get profile with follow data:', err);
+      throw err;
     }
   }
 
@@ -575,17 +659,19 @@ export class ProfileService {
         throw error;
       }
 
-      // Update the current profile signal if it's the current user's profile
+      // Update the current profile signal and cache if it's the current user's profile
       const currentProfile = this.currentProfile();
       if (currentProfile && currentProfile.id === userId) {
         const updatedProfile = { ...currentProfile, usually_viewed_tags: [] };
         this.currentProfile.set(updatedProfile);
+        // Update cache
+        this.profileCache.set(userId, updatedProfile);
       } else {
-        // If profile is not loaded, reload it to get updated tags
+        // If profile is not loaded, reload it to get updated tags (will use cache if available)
         try {
           const { data: { user } } = await this.supabase.auth.getUser();
           if (user && user.id === userId) {
-            await this.getProfile(userId);
+            await this.getProfile(userId, true); // Force refresh to get updated tags
           }
         } catch (err) {
           console.warn('Could not reload profile after clearing tags:', err);

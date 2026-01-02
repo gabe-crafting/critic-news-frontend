@@ -1,14 +1,20 @@
-import { Component, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
 import { FeedComponent } from '../../shared/components/feed/feed.component';
 import { PostComponent } from '../../shared/components/post/post.component';
 import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
 import { SearchFilters } from '../../shared/components/search-panel/search-panel.component';
 import { AuthService } from '../../core/services/auth.service';
 import { ProfileService } from '../../core/services/profile.service';
-import { PostsService, Post } from '../../core/services/posts.service';
+import { PostsService } from '../../core/services/posts.service';
+import * as ProfileActions from '../../core/store/profile/profile.actions';
+import * as ProfileSelectors from '../../core/store/profile/profile.selectors';
+import * as PostsActions from '../../core/store/posts/posts.actions';
+import * as PostsSelectors from '../../core/store/posts/posts.selectors';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -20,69 +26,42 @@ import { Subscription } from 'rxjs';
 })
 export class ProfileComponent implements OnInit, OnDestroy {
   profileUserId: string | null = null;
-  userPosts = signal<Post[]>([]);
-  userPostsLoading = signal(false);
   searchFilters = signal<SearchFilters>({ title: '', tags: [] });
   private routeSubscription?: Subscription;
 
-  filteredPosts = computed(() => {
-    const posts = this.userPosts();
-    const filters = this.searchFilters();
-    
-    if (!filters.title && filters.tags.length === 0) {
-      return posts;
-    }
-
-    return posts.filter(post => {
-      // Filter by title
-      if (filters.title) {
-        const titleMatch = post.description
-          .toLowerCase()
-          .includes(filters.title.toLowerCase());
-        if (!titleMatch) return false;
-      }
-
-      // Filter by tags (mocked - check if any tag matches post tags)
-      if (filters.tags.length > 0) {
-        const postTags = post.tags || [];
-        const hasMatchingTag = filters.tags.some(filterTag =>
-          postTags.some(postTag => 
-            postTag.toLowerCase().includes(filterTag.toLowerCase())
-          )
-        );
-        if (!hasMatchingTag) return false;
-      }
-
-      return true;
-    });
-  });
+  // Store observables
+  currentProfile$!: Observable<any>;
+  isFollowing$!: Observable<boolean>;
+  followersCount$!: Observable<number>;
+  followingCount$!: Observable<number>;
+  profileLoading$!: Observable<boolean>;
+  profileError$!: Observable<string | null>;
+  userPosts$!: Observable<any[]>;
+  userPostsLoading$!: Observable<boolean>;
 
   constructor(
+    private store: Store,
     public authService: AuthService,
     public profileService: ProfileService,
     public postsService: PostsService,
     private route: ActivatedRoute,
     private router: Router
   ) {
-    // Watch for new posts from the current user and add them to userPosts if viewing own profile
-    effect(() => {
-      const posts = this.postsService.posts();
-      const currentUser = this.authService.currentUser();
-      
-      // Only update if viewing own profile and there are posts
-      if (posts.length > 0 && currentUser && this.profileUserId && this.profileUserId === currentUser.id) {
-        // Check if there's a new post from the current user that's not in userPosts
-        const userPostsIds = new Set(this.userPosts().map(p => p.id));
-        const newUserPosts = posts.filter(post => 
-          post.user_id === currentUser.id && !userPostsIds.has(post.id)
-        );
-        
-        if (newUserPosts.length > 0) {
-          // Add new posts to the beginning of the array
-          this.userPosts.update(existing => [...newUserPosts, ...existing]);
-        }
-      }
+    // Initialize store observables
+    this.currentProfile$ = this.store.select(ProfileSelectors.selectCurrentProfile);
+    this.isFollowing$ = this.store.select(ProfileSelectors.selectIsFollowing);
+    this.followersCount$ = this.store.select(ProfileSelectors.selectFollowersCount);
+    this.followingCount$ = this.store.select(ProfileSelectors.selectFollowingCount);
+    this.profileLoading$ = this.store.select(ProfileSelectors.selectProfileLoading);
+    this.profileError$ = this.store.select(ProfileSelectors.selectProfileError);
+    this.userPosts$ = this.store.select(PostsSelectors.selectAllPosts);
+    this.userPostsLoading$ = this.store.select(PostsSelectors.selectPostsLoading);
+
+    // Watch for profile changes to update embedded profile data in posts
+    this.currentProfile$.subscribe(profile => {
+      // Profile update handling is now done in the post component
     });
+
   }
 
   ngOnInit(): void {
@@ -100,34 +79,33 @@ export class ProfileComponent implements OnInit, OnDestroy {
         }
       }
     });
+
+    // Profile updates are now handled by individual post components
   }
 
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe();
   }
 
-  async loadProfile(userId: string): Promise<void> {
-    try {
-      await this.profileService.getProfile(userId);
-      // Load user posts
-      await this.loadUserPosts(userId);
-    } catch (error) {
-      console.error('Failed to load profile:', error);
-    }
+  loadProfile(userId: string): void {
+    const currentUser = this.authService.currentUser();
+    // Dispatch action to load profile with follow data
+    this.store.dispatch(ProfileActions.loadProfileWithFollowData({
+      userId,
+      currentUserId: currentUser?.id
+    }));
+
+    // Load user posts
+    this.loadUserPosts(userId);
   }
 
-  async loadUserPosts(userId: string): Promise<void> {
-    this.userPostsLoading.set(true);
-    this.userPosts.set([]);
-    try {
-      const posts = await this.postsService.getPostsByUser(userId);
-      this.userPosts.set(posts);
-    } catch (error) {
-      console.error('Failed to load user posts:', error);
-      this.userPosts.set([]);
-    } finally {
-      this.userPostsLoading.set(false);
-    }
+  loadUserPosts(userId: string): void {
+    const currentUser = this.authService.currentUser();
+    this.store.dispatch(PostsActions.loadPostsByUser({
+      userId,
+      limit: 50,
+      currentUserId: currentUser?.id
+    }));
   }
 
   async deletePost(postId: string): Promise<void> {
@@ -137,23 +115,20 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
     try {
       await this.postsService.deletePost(postId);
-      // Remove from local array
-      this.userPosts.update(posts => posts.filter(post => post.id !== postId));
+      // Reload posts to reflect the deletion
+      if (this.profileUserId) {
+        this.loadUserPosts(this.profileUserId);
+      }
     } catch (error) {
       console.error('Failed to delete post:', error);
       alert('Failed to delete post. Please try again.');
     }
   }
 
-  async onPostUpdate(updatedPost: Post): Promise<void> {
-    // Reload posts if it's a share/unshare action to show the new shared post
+  async onPostUpdate(updatedPost: any): Promise<void> {
+    // Reload posts to reflect any changes
     if (this.profileUserId) {
-      await this.loadUserPosts(this.profileUserId);
-    } else {
-      // Otherwise just update the post in the local array
-      this.userPosts.update(posts =>
-        posts.map(post => (post.id === updatedPost.id ? updatedPost : post))
-      );
+      this.loadUserPosts(this.profileUserId);
     }
   }
 
