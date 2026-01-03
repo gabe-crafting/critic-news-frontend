@@ -38,9 +38,9 @@
       </mat-form-field>
 
       <!-- Selected Tags Chips -->
-      @if (selectedTags.length > 0) {
+      @if (selectedTags().length > 0) {
         <div class="flex flex-wrap gap-2 px-3">
-          @for (tag of selectedTags; track tag) {
+          @for (tag of selectedTags(); track tag) {
             <mat-chip (removed)="removeTag(tag)">
               {{ tag }}
               <button matChipRemove>
@@ -64,9 +64,23 @@
       }
     </div>
 
+    <!-- Tag Filtering Mode -->
+    @if (selectedTags().length > 1) {
+      <div class="flex items-center justify-center gap-4 py-2 border-t border-gray-200">
+        <span class="text-sm text-gray-600">Union</span>
+        <mat-slide-toggle
+          [checked]="tagMode === 'intersection'"
+          (change)="onTagModeToggle($event)"
+          [disabled]="selectedTags().length <= 1"
+        >
+        </mat-slide-toggle>
+        <span class="text-sm text-gray-600">Intersection</span>
+      </div>
+    }
+
     <!-- Action Buttons -->
     <div class="flex gap-2 justify-end">
-      @if (titleSearch || selectedTags.length > 0) {
+      @if (titleSearch || selectedTags().length > 0) {
         <button 
           mat-button 
           (click)="clearSearch()"

@@ -1,53 +1,23 @@
 import { Routes } from '@angular/router';
-import { HomepageComponent } from './pages/homepage/homepage.component';
-import { AppPageComponent } from './pages/app/app.component';
-import { LoginComponent } from './pages/auth/login/login.component';
-import { SignupComponent } from './pages/auth/signup/signup.component';
-import { ProfileComponent } from './pages/profile/profile.component';
-import { DiscoverJunkiesComponent } from './pages/discover-junkies/discover-junkies.component';
-import { FollowingComponent } from './pages/following/following.component';
-import { AppLayoutComponent } from './shared/layouts/app-layout/app-layout.component';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
     path: '',
-    component: HomepageComponent
+    loadComponent: () => import('./pages/homepage/homepage.component').then(m => m.HomepageComponent)
   },
   {
     path: 'login',
-    component: LoginComponent
+    loadComponent: () => import('./pages/auth/login/login.component').then(m => m.LoginComponent)
   },
   {
     path: 'signup',
-    component: SignupComponent
+    loadComponent: () => import('./pages/auth/signup/signup.component').then(m => m.SignupComponent)
   },
   {
     path: '',
-    component: AppLayoutComponent,
+    loadComponent: () => import('./shared/layouts/app-layout/app-layout.component').then(m => m.AppLayoutComponent),
     canActivate: [authGuard],
-    children: [
-      {
-        path: 'app',
-        component: AppPageComponent
-      },
-      {
-        path: 'profile/:id',
-        component: ProfileComponent
-      },
-      {
-        path: 'profile',
-        redirectTo: '/app',
-        pathMatch: 'full'
-      },
-      {
-        path: 'discover',
-        component: DiscoverJunkiesComponent
-      },
-      {
-        path: 'following',
-        component: FollowingComponent
-      }
-    ]
+    loadChildren: () => import('./app.routes.auth').then(m => m.authRoutes)
   }
 ];

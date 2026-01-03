@@ -19,7 +19,7 @@ import * as PostsSelectors from '../../core/store/posts/posts.selectors';
   styleUrl: './app.component.css'
 })
 export class AppPageComponent {
-  searchFilters = signal<SearchFilters>({ title: '', tags: [] });
+  searchFilters = signal<SearchFilters>({ title: '', tags: [], tagMode: 'union' });
   posts = signal<Post[]>([]);
   
   posts$!: Observable<Post[]>;
@@ -28,7 +28,7 @@ export class AppPageComponent {
   filteredPosts = computed(() => {
     const posts = this.posts();
     const filters = this.searchFilters();
-    
+
     if (!filters.title && filters.tags.length === 0) {
       return posts;
     }
@@ -42,15 +42,28 @@ export class AppPageComponent {
         if (!titleMatch) return false;
       }
 
-      // Filter by tags (mocked - check if any tag matches post tags)
+      // Filter by tags
       if (filters.tags.length > 0) {
         const postTags = post.tags || [];
-        const hasMatchingTag = filters.tags.some(filterTag =>
-          postTags.some(postTag => 
-            postTag.toLowerCase().includes(filterTag.toLowerCase())
-          )
-        );
-        if (!hasMatchingTag) return false;
+        const tagMode = filters.tagMode || 'union';
+
+        if (tagMode === 'intersection') {
+          // ALL selected tags must be present (AND logic)
+          const hasAllTags = filters.tags.every(filterTag =>
+            postTags.some(postTag =>
+              postTag.toLowerCase().includes(filterTag.toLowerCase())
+            )
+          );
+          if (!hasAllTags) return false;
+        } else {
+          // AT LEAST ONE selected tag must be present (OR logic - current behavior)
+          const hasMatchingTag = filters.tags.some(filterTag =>
+            postTags.some(postTag =>
+              postTag.toLowerCase().includes(filterTag.toLowerCase())
+            )
+          );
+          if (!hasMatchingTag) return false;
+        }
       }
 
       return true;
@@ -67,30 +80,8 @@ export class AppPageComponent {
     this.isLoading$ = this.store.select(PostsSelectors.selectPostsLoading);
 
     this.posts$.subscribe(posts => this.posts.set(posts));
-
-    // Load posts when component initializes (only if not already loaded)
-    this.loadPostsIfNeeded();
   }
 
-  private loadPostsIfNeeded(): void {
-    // Check if posts are already loaded to avoid unnecessary refreshes
-    let postsLoaded = false;
-    this.store.select(PostsSelectors.selectPostsLoaded).subscribe(loaded => {
-      postsLoaded = loaded;
-    }).unsubscribe();
-
-    // Only load posts if they haven't been loaded yet
-    if (!postsLoaded) {
-      const user = this.authService.currentUser();
-      if (user) {
-        this.store.dispatch(PostsActions.loadPosts({
-          limit: 50,
-          tags: undefined,
-          currentUserId: user.id
-        }));
-      }
-    }
-  }
 
 
 

@@ -48,3 +48,21 @@
   </mat-card-content>
 </mat-card>
 
+<!-- Tag Filtering Mode -->
+@if (selectedTags().length > 1) {
+  <mat-card class="w-full transparent-card mt-4">
+    <mat-card-content class="py-3">
+      <div class="flex items-center justify-center gap-4">
+        <span class="text-sm text-gray-600">Union</span>
+        <mat-slide-toggle
+          [checked]="tagMode === 'intersection'"
+          (change)="onTagModeToggle($event)"
+          [disabled]="selectedTags().length <= 1"
+        >
+        </mat-slide-toggle>
+        <span class="text-sm text-gray-600">Intersection</span>
+      </div>
+    </mat-card-content>
+  </mat-card>
+}
+

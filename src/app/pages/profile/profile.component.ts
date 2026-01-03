@@ -26,7 +26,7 @@ import { Subscription } from 'rxjs';
 })
 export class ProfileComponent implements OnInit, OnDestroy {
   profileUserId: string | null = null;
-  searchFilters = signal<SearchFilters>({ title: '', tags: [] });
+  searchFilters = signal<SearchFilters>({ title: '', tags: [], tagMode: 'union' });
   private routeSubscription?: Subscription;
 
   currentProfile$!: Observable<any>;

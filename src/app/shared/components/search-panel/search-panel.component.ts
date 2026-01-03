@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, OnInit, OnDestroy } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSlideToggleModule, MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { Subscription } from 'rxjs';
 import { PostsService } from '../../../core/services/posts.service';
 import { SearchService } from '../../../core/services/search.service';
@@ -14,6 +15,7 @@ import { SearchService } from '../../../core/services/search.service';
 export interface SearchFilters {
   tags: string[];
   title: string;
+  tagMode: 'union' | 'intersection'; // 'union' = OR (at least one), 'intersection' = AND (all)
 }
 
 @Component({
@@ -27,7 +29,8 @@ export interface SearchFilters {
     MatInputModule,
     MatChipsModule,
     MatIconModule,
-    MatButtonModule
+    MatButtonModule,
+    MatSlideToggleModule
   ],
   templateUrl: './search-panel.component.html',
   styleUrl: './search-panel.component.css'
@@ -38,9 +41,11 @@ export class SearchPanelComponent implements OnInit, OnDestroy {
   isExpanded = false;
   titleSearch = '';
   tagSearch = '';
-  selectedTags: string[] = [];
+  selectedTags = signal<string[]>([]);
   availableTags: string[] = [];
+  tagMode: 'union' | 'intersection' = 'union'; // Default to union (OR logic)
   private searchSubscription?: Subscription;
+  private tagModeSubscription?: Subscription;
   private isUpdatingFromService = false;
 
   constructor(
@@ -50,23 +55,31 @@ export class SearchPanelComponent implements OnInit, OnDestroy {
 
   async ngOnInit(): Promise<void> {
     await this.loadTags();
-    
+
     // Subscribe to search triggers from other components (e.g., tags sidebar)
     this.searchSubscription = this.searchService.searchTrigger$.subscribe(filters => {
       // Update the search panel state
       this.isUpdatingFromService = true;
       this.titleSearch = filters.title;
-      this.selectedTags = [...filters.tags];
-      
-      // Don't expand the panel - just update state and search
-      // Emit the search immediately (but don't update service to avoid loop)
+      this.selectedTags.set([...filters.tags]);
+      this.tagMode = filters.tagMode || 'union';
+
+      // Emit the search change to parent components
       this.searchChange.emit(filters);
       this.isUpdatingFromService = false;
+    });
+
+    // Subscribe to tag mode changes to stay in sync with other components
+    this.tagModeSubscription = this.searchService.tagMode$.subscribe(tagMode => {
+      if (!this.isUpdatingFromService) {
+        this.tagMode = tagMode;
+      }
     });
   }
 
   ngOnDestroy(): void {
     this.searchSubscription?.unsubscribe();
+    this.tagModeSubscription?.unsubscribe();
   }
 
   async loadTags(): Promise<void> {
@@ -94,19 +107,19 @@ export class SearchPanelComponent implements OnInit, OnDestroy {
   getFilteredAvailableTags(): string[] {
     return this.availableTags.filter(tag =>
       tag.toLowerCase().includes(this.tagSearch.toLowerCase()) &&
-      !this.selectedTags.includes(tag)
+      !this.selectedTags().includes(tag)
     );
   }
 
   addTag(tag: string): void {
-    if (tag && !this.selectedTags.includes(tag)) {
-      this.selectedTags.push(tag);
+    if (tag && !this.selectedTags().includes(tag)) {
+      this.selectedTags.set([...this.selectedTags(), tag]);
       // No longer auto-search when adding tag
     }
   }
 
   removeTag(tag: string): void {
-    this.selectedTags = this.selectedTags.filter(t => t !== tag);
+    this.selectedTags.set(this.selectedTags().filter(t => t !== tag));
     // No longer auto-search when removing tag
   }
 
@@ -125,21 +138,34 @@ export class SearchPanelComponent implements OnInit, OnDestroy {
   clearSearch(): void {
     this.titleSearch = '';
     this.tagSearch = '';
-    this.selectedTags = [];
+    this.selectedTags.set([]);
+    this.tagMode = 'union'; // Reset to default
     // Emit empty search to clear results (will update service via emitSearch)
+    this.emitSearch();
+  }
+
+  onTagModeToggle(event: MatSlideToggleChange): void {
+    // Update tag mode based on toggle state
+    this.tagMode = event.checked ? 'intersection' : 'union';
+    // Update search service to sync with other components
+    this.searchService.triggerSearch({
+      title: this.titleSearch.trim(),
+      tags: [...this.selectedTags()],
+      tagMode: this.tagMode
+    });
+    // Emit search when tag mode changes to update results immediately
     this.emitSearch();
   }
 
   private emitSearch(): void {
     const filters = {
       title: this.titleSearch.trim(),
-      tags: [...this.selectedTags]
+      tags: [...this.selectedTags()],
+      tagMode: this.tagMode
     };
     this.searchChange.emit(filters);
-    // Update the search service to keep tags sidebar in sync (only if not updating from service)
-    if (!this.isUpdatingFromService) {
-      this.searchService.triggerSearch(filters);
-    }
+    // Always update the search service to keep tags sidebar in sync
+    this.searchService.triggerSearch(filters);
   }
 }
 

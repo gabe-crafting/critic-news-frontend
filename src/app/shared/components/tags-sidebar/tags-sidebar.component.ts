@@ -1,10 +1,12 @@
 import { Component, OnInit, OnDestroy, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSlideToggleModule, MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
@@ -18,14 +20,16 @@ import * as PostsActions from '../../../core/store/posts/posts.actions';
 @Component({
   selector: 'app-tags-sidebar',
   standalone: true,
-  imports: [CommonModule, MatChipsModule, MatCardModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, FormsModule, MatChipsModule, MatCardModule, MatButtonModule, MatIconModule, MatTooltipModule, MatSlideToggleModule],
   templateUrl: './tags-sidebar.component.html',
   styleUrl: './tags-sidebar.component.css'
 })
 export class TagsSidebarComponent implements OnInit, OnDestroy {
   usuallyViewedTags = signal<string[]>([]);
   selectedTags = signal<string[]>([]);
+  tagMode: 'union' | 'intersection' = 'union'; // Default to union (OR logic)
   private selectedTagsSubscription?: Subscription;
+  private tagModeSubscription?: Subscription;
 
   constructor(
     public authService: AuthService,
@@ -53,13 +57,19 @@ export class TagsSidebarComponent implements OnInit, OnDestroy {
     this.selectedTagsSubscription = this.searchService.selectedTags$.subscribe(tags => {
       this.selectedTags.set(tags);
     });
-    
+
+    // Subscribe to tag mode changes to stay in sync with other components
+    this.tagModeSubscription = this.searchService.tagMode$.subscribe(tagMode => {
+      this.tagMode = tagMode;
+    });
+
     // Initialize with current selected tags
     this.selectedTags.set(this.searchService.getSelectedTags());
   }
 
   ngOnDestroy(): void {
     this.selectedTagsSubscription?.unsubscribe();
+    this.tagModeSubscription?.unsubscribe();
   }
 
   async loadUsuallyViewedTags(): Promise<void> {
@@ -127,7 +137,7 @@ export class TagsSidebarComponent implements OnInit, OnDestroy {
 
   onTagClick(tag: string): void {
     const normalizedTag = tag.toLowerCase();
-    this.searchService.searchByTag(normalizedTag);
+    this.searchService.searchByTag(normalizedTag, this.tagMode);
   }
 
   isTagSelected(tag: string): boolean {
@@ -135,6 +145,17 @@ export class TagsSidebarComponent implements OnInit, OnDestroy {
     const normalizedTag = tag.toLowerCase();
     const selected = this.selectedTags().some(selectedTag => selectedTag.toLowerCase() === normalizedTag);
     return selected;
+  }
+
+  onTagModeToggle(event: MatSlideToggleChange): void {
+    // Update tag mode based on toggle state
+    this.tagMode = event.checked ? 'intersection' : 'union';
+    // Update search service to sync with other components
+    this.searchService.triggerSearch({
+      title: '',
+      tags: [...this.selectedTags()],
+      tagMode: this.tagMode
+    });
   }
 }
 

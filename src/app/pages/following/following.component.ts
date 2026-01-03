@@ -17,7 +17,7 @@ import { SearchFilters } from '../../shared/components/search-panel/search-panel
 export class FollowingComponent implements OnInit {
   followingPosts = signal<Post[]>([]);
   isLoadingPosts = signal<boolean>(false);
-  searchFilters = signal<SearchFilters>({ title: '', tags: [] });
+  searchFilters = signal<SearchFilters>({ title: '', tags: [], tagMode: 'union' });
 
   filteredPosts = computed(() => {
     const posts = this.followingPosts();
@@ -39,12 +39,25 @@ export class FollowingComponent implements OnInit {
       // Filter by tags
       if (filters.tags.length > 0) {
         const postTags = post.tags || [];
-        const hasMatchingTag = filters.tags.some(filterTag =>
-          postTags.some(postTag => 
-            postTag.toLowerCase().includes(filterTag.toLowerCase())
-          )
-        );
-        if (!hasMatchingTag) return false;
+        const tagMode = filters.tagMode || 'union';
+
+        if (tagMode === 'intersection') {
+          // ALL selected tags must be present (AND logic)
+          const hasAllTags = filters.tags.every(filterTag =>
+            postTags.some(postTag =>
+              postTag.toLowerCase().includes(filterTag.toLowerCase())
+            )
+          );
+          if (!hasAllTags) return false;
+        } else {
+          // AT LEAST ONE selected tag must be present (OR logic - current behavior)
+          const hasMatchingTag = filters.tags.some(filterTag =>
+            postTags.some(postTag =>
+              postTag.toLowerCase().includes(filterTag.toLowerCase())
+            )
+          );
+          if (!hasMatchingTag) return false;
+        }
       }
 
       return true;

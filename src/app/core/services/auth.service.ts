@@ -6,6 +6,7 @@ import { ProfileService } from './profile.service';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import * as ProfileActions from '../store/profile/profile.actions';
 import * as PostsActions from '../store/posts/posts.actions';
+import * as PostsSelectors from '../store/posts/posts.selectors';
 
 export interface SignUpCredentials {
   email: string;
@@ -47,7 +48,10 @@ export class AuthService {
     this.session.set(session);
     this.currentUser.set(session?.user ?? null);
 
-    // Initial data loading is now handled by individual page components
+    // Load initial data if user is already signed in
+    if (session?.user) {
+      this.loadInitialData(session.user);
+    }
 
     // Check if we have hash fragments from email callback and user is now authenticated
     if (session && typeof window !== 'undefined') {
@@ -63,9 +67,11 @@ export class AuthService {
     this.supabase.auth.onAuthStateChange((event, session) => {
       this.session.set(session);
       this.currentUser.set(session?.user ?? null);
-      
-      // If user just signed in, redirect to app
-      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+
+      // Only load initial data on actual sign-in events, not on initial session detection
+      if (session && event === 'SIGNED_IN') {
+        // Load initial data for the newly signed-in user
+        this.loadInitialData(session.user);
 
         // Check if we're coming from an email callback
         if (typeof window !== 'undefined') {
@@ -90,6 +96,26 @@ export class AuthService {
 
   async waitForInit(): Promise<void> {
     await this.initPromise;
+  }
+
+  /**
+   * Load initial data when user signs in
+   */
+  private loadInitialData(user: User): void {
+    // Check if posts are already loaded to avoid unnecessary refetching
+    let postsLoaded = false;
+    this.store.select(PostsSelectors.selectPostsLoaded).subscribe(loaded => {
+      postsLoaded = loaded;
+    }).unsubscribe();
+
+    // Only load posts if they haven't been loaded yet
+    if (!postsLoaded) {
+      this.store.dispatch(PostsActions.loadPosts({
+        limit: 50,
+        tags: undefined,
+        currentUserId: user.id
+      }));
+    }
   }
 
   async signUp(credentials: SignUpCredentials): Promise<void> {
