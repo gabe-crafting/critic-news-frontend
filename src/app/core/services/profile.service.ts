@@ -509,54 +509,34 @@ export class ProfileService {
     const normalizedTag = tag.trim().toLowerCase();
 
     try {
-      // Get current profile to check existing tags
-      const { data: profile, error: selectError } = await this.supabase
-        .from('user_profiles')
-        .select('usually_viewed_tags')
-        .eq('id', userId)
-        .maybeSingle();
+      // Use a single RPC call to efficiently add tag to usually_viewed_tags array
+      // This avoids the SELECT + UPDATE pattern and uses PostgreSQL's array operations
+      const { error } = await this.supabase.rpc('add_usually_viewed_tag', {
+        p_user_id: userId,
+        p_tag: normalizedTag
+      });
 
-      if (selectError) {
-        throw selectError;
+      if (error) {
+        throw error;
       }
 
-      const currentTags = (profile?.usually_viewed_tags || []) as string[];
-      
-      // Don't reorder - just add tag if it doesn't exist, keep existing order
-      if (!currentTags.includes(normalizedTag)) {
-        // Add to the end if not present, but limit to 10 total
-        const updatedTags = [...currentTags, normalizedTag].slice(-10);
-        
-        // Update the profile
-        const { error: updateError } = await this.supabase
-          .from('user_profiles')
-          .update({ usually_viewed_tags: updatedTags })
-          .eq('id', userId);
+      // Update the current profile signal locally if it's the current user's profile
+      // This avoids an extra API call to refresh the profile data
+      const currentProfile = this.currentProfile();
+      if (currentProfile && currentProfile.id === userId) {
+        const currentTags = (currentProfile.usually_viewed_tags || []) as string[];
 
-        if (updateError) {
-          throw updateError;
-        }
-
-        // Update the current profile signal and cache if it's the current user's profile
-        const currentProfile = this.currentProfile();
-        if (currentProfile && currentProfile.id === userId) {
+        // Only update locally if the tag wasn't already in the list
+        if (!currentTags.some(t => t.toLowerCase() === normalizedTag)) {
+          // Add the tag to the end and keep only the last 10
+          const updatedTags = [...currentTags, normalizedTag].slice(-10);
           const updatedProfile = { ...currentProfile, usually_viewed_tags: updatedTags };
+
           this.currentProfile.set(updatedProfile);
           // Update cache
           this.profileCache.set(userId, updatedProfile);
-        } else {
-          // If profile is not loaded, reload it to get updated tags (will use cache if available)
-          try {
-            const { data: { user } } = await this.supabase.auth.getUser();
-            if (user && user.id === userId) {
-              await this.getProfile(userId, true); // Force refresh to get updated tags
-            }
-          } catch (err) {
-            console.warn('Could not reload profile after tracking tag:', err);
-          }
         }
       }
-      // If tag already exists, don't do anything - keep the order as is
     } catch (err: any) {
       console.error('Failed to track tag view:', err);
       // Don't throw - this is a non-critical operation

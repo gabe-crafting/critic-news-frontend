@@ -6,12 +6,14 @@ export interface PostsState {
   posts: Post[];
   isLoading: boolean;
   error: string | null;
+  postsLoaded: boolean;
 }
 
 export const initialState: PostsState = {
   posts: [],
   isLoading: false,
-  error: null
+  error: null,
+  postsLoaded: false
 };
 
 export const postsReducer = createReducer(
@@ -25,7 +27,8 @@ export const postsReducer = createReducer(
     ...state,
     posts,
     isLoading: false,
-    error: null
+    error: null,
+    postsLoaded: true
   })),
   on(PostsActions.loadPostsFailure, (state, { error }) => ({
     ...state,
@@ -41,7 +44,8 @@ export const postsReducer = createReducer(
     ...state,
     posts,
     isLoading: false,
-    error: null
+    error: null,
+    postsLoaded: true
   })),
   on(PostsActions.loadPostsByUserFailure, (state, { error }) => ({
     ...state,
@@ -57,7 +61,8 @@ export const postsReducer = createReducer(
     ...state,
     posts,
     isLoading: false,
-    error: null
+    error: null,
+    postsLoaded: true
   })),
   on(PostsActions.loadPostsFromFollowingFailure, (state, { error }) => ({
     ...state,
@@ -99,7 +104,8 @@ export const postsReducer = createReducer(
   on(PostsActions.clearPosts, (state) => ({
     ...state,
     posts: [],
-    error: null
+    error: null,
+    postsLoaded: false
   }))
 );
 

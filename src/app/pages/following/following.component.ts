@@ -82,13 +82,27 @@ export class FollowingComponent implements OnInit {
 
   async onSearchChange(filters: SearchFilters): Promise<void> {
     this.searchFilters.set(filters);
-    
-    // Track tags when they're searched
+
+    // Track tags when they're searched, but only if they're not already in usually viewed tags
     const user = this.authService.currentUser();
     if (user && filters.tags.length > 0) {
-      // Track each tag that was searched
+      // Get usually viewed tags from current profile signal (more efficient than API call)
+      let usuallyViewedTags: string[] = [];
+      const currentProfile = this.profileService.currentProfile();
+      if (currentProfile && currentProfile.id === user.id && currentProfile.usually_viewed_tags) {
+        usuallyViewedTags = currentProfile.usually_viewed_tags;
+      } else {
+        // Fallback to API call if profile not loaded
+        usuallyViewedTags = await this.profileService.getUsuallyViewedTags(user.id);
+      }
+
+      const usuallyViewedTagsLower = usuallyViewedTags.map(tag => tag.toLowerCase());
+
+      // Track each tag that was searched but is not already in usually viewed tags
       for (const tag of filters.tags) {
-        await this.profileService.trackTagView(user.id, tag);
+        if (!usuallyViewedTagsLower.includes(tag.toLowerCase())) {
+          await this.profileService.trackTagView(user.id, tag);
+        }
       }
     }
   }

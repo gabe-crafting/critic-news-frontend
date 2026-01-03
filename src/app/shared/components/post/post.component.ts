@@ -36,7 +36,6 @@ export class PostComponent implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
-    // Use share status from post data (fetched via join in database)
     this.isShared.set(this.post.is_shared_by_current_user || false);
   }
 
@@ -154,7 +153,6 @@ export class PostComponent implements OnInit {
       this.store.dispatch(PostsActions.sharePost({ userId: user.id, postId: postIdToShare }));
       this.isShared.set(true);
     }
-    // Store will update the post automatically via reducer
     this.onUpdate.emit(this.post);
     this.isSharing.set(false);
   }

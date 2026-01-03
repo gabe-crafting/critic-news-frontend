@@ -21,7 +21,6 @@ import * as ProfileSelectors from '../../../core/store/profile/profile.selectors
 export class ProfileHeaderComponent implements OnChanges {
   @Input() profileUserId: string | null = null;
 
-  // Store observables
   currentProfile$!: Observable<any>;
   isFollowingUser$!: Observable<boolean>;
   followersCount$!: Observable<number>;
@@ -37,7 +36,6 @@ export class ProfileHeaderComponent implements OnChanges {
     public authService: AuthService,
     private dialog: MatDialog
   ) {
-    // Initialize store observables
     this.currentProfile$ = this.store.select(ProfileSelectors.selectCurrentProfile);
     this.isFollowingUser$ = this.store.select(ProfileSelectors.selectIsFollowing);
     this.followersCount$ = this.store.select(ProfileSelectors.selectFollowersCount);
@@ -47,7 +45,6 @@ export class ProfileHeaderComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     // ProfileComponent is now responsible for loading profile data
-    // This component just consumes the data from the store
     if (changes['profileUserId'] && this.profileUserId) {
       // Profile data should already be loaded by ProfileComponent
     }
@@ -64,7 +61,6 @@ export class ProfileHeaderComponent implements OnChanges {
       return;
     }
 
-    // Get profile from store
     let profile: any = null;
     this.currentProfile$.subscribe(p => profile = p).unsubscribe();
 
@@ -138,7 +134,6 @@ export class ProfileHeaderComponent implements OnChanges {
 
     if (this.isCheckingFollowStatus()) return;
 
-    // Get current follow status from store
     let isFollowing = false;
     this.isFollowingUser$.subscribe(following => isFollowing = following).unsubscribe();
 

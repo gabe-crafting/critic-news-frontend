@@ -12,6 +12,8 @@ import { ProfileService } from '../../../core/services/profile.service';
 import { SearchService } from '../../../core/services/search.service';
 import { CreatePostDialogComponent, CreatePostDialogData } from '../create-post-dialog/create-post-dialog.component';
 import { PostsService } from '../../../core/services/posts.service';
+import { Store } from '@ngrx/store';
+import * as PostsActions from '../../../core/store/posts/posts.actions';
 
 @Component({
   selector: 'app-tags-sidebar',
@@ -30,7 +32,8 @@ export class TagsSidebarComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private postsService: PostsService,
     public profileService: ProfileService,
-    private searchService: SearchService
+    private searchService: SearchService,
+    private store: Store
   ) {
     // Watch for changes to the current profile's usually_viewed_tags
     effect(() => {
@@ -97,10 +100,8 @@ export class TagsSidebarComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        // Refresh posts list
-        this.postsService.getPosts().catch(error => {
-          console.error('Failed to refresh posts:', error);
-        });
+        // Posts are automatically added to the store by the createPostSuccess action
+        // No manual refresh needed
       }
     });
   }
@@ -125,17 +126,8 @@ export class TagsSidebarComponent implements OnInit, OnDestroy {
   }
 
   onTagClick(tag: string): void {
-    // Trigger search for this tag (normalize to lowercase to match stored format)
     const normalizedTag = tag.toLowerCase();
     this.searchService.searchByTag(normalizedTag);
-    
-    // Track the tag view
-    const user = this.authService.currentUser();
-    if (user) {
-      this.profileService.trackTagView(user.id, tag).catch(error => {
-        console.error('Failed to track tag view:', error);
-      });
-    }
   }
 
   isTagSelected(tag: string): boolean {

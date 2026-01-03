@@ -112,7 +112,6 @@ export class PostsService {
         };
       });
 
-      // Don't update signals - store will handle state updates
       return postsWithProfiles;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to fetch posts');
@@ -314,7 +313,6 @@ export class PostsService {
         };
       });
 
-      // Don't update signals - store will handle state updates
       this.isLoading.set(false);
       return postsWithProfiles;
     } catch (err: any) {
@@ -378,7 +376,6 @@ export class PostsService {
         is_shared_by_current_user: false
       };
 
-      // Don't update signals - store will handle state updates
       return data;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to create post');
@@ -420,7 +417,6 @@ export class PostsService {
         user_profiles: profileData || null
       };
 
-      // Don't update signals - store will handle state updates
       return updatedPost;
     } catch (err: any) {
       this.error.set(err.message || 'Failed to update post');
@@ -447,7 +443,6 @@ export class PostsService {
         throw error;
       }
 
-      // Don't update signals - store will handle state updates
     } catch (err: any) {
       this.error.set(err.message || 'Failed to delete post');
       throw err;

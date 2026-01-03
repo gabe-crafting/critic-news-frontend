@@ -18,3 +18,8 @@ export const selectPostsError = createSelector(
   (state: PostsState) => state.error
 );
 
+export const selectPostsLoaded = createSelector(
+  selectPostsState,
+  (state: PostsState) => state.postsLoaded
+);
+

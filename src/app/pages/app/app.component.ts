@@ -1,4 +1,4 @@
-import { Component, computed, signal, effect } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
@@ -65,22 +65,58 @@ export class AppPageComponent {
     // Initialize observables
     this.posts$ = this.store.select(PostsSelectors.selectAllPosts);
     this.isLoading$ = this.store.select(PostsSelectors.selectPostsLoading);
-    
-    // Subscribe to posts from store
+
     this.posts$.subscribe(posts => this.posts.set(posts));
+
+    // Load posts when component initializes (only if not already loaded)
+    this.loadPostsIfNeeded();
+  }
+
+  private loadPostsIfNeeded(): void {
+    // Check if posts are already loaded to avoid unnecessary refreshes
+    let postsLoaded = false;
+    this.store.select(PostsSelectors.selectPostsLoaded).subscribe(loaded => {
+      postsLoaded = loaded;
+    }).unsubscribe();
+
+    // Only load posts if they haven't been loaded yet
+    if (!postsLoaded) {
+      const user = this.authService.currentUser();
+      if (user) {
+        this.store.dispatch(PostsActions.loadPosts({
+          limit: 50,
+          tags: undefined,
+          currentUserId: user.id
+        }));
+      }
+    }
   }
 
 
 
   async onSearchChange(filters: SearchFilters): Promise<void> {
     this.searchFilters.set(filters);
-    
-    // Track tags when they're searched
+
+    // Track tags when they're searched, but only if they're not already in usually viewed tags
     const user = this.authService.currentUser();
     if (user && filters.tags.length > 0) {
-      // Track each tag that was searched
+      // Get usually viewed tags from current profile signal (more efficient than API call)
+      let usuallyViewedTags: string[] = [];
+      const currentProfile = this.profileService.currentProfile();
+      if (currentProfile && currentProfile.id === user.id && currentProfile.usually_viewed_tags) {
+        usuallyViewedTags = currentProfile.usually_viewed_tags;
+      } else {
+        // Fallback to API call if profile not loaded
+        usuallyViewedTags = await this.profileService.getUsuallyViewedTags(user.id);
+      }
+
+      const usuallyViewedTagsLower = usuallyViewedTags.map(tag => tag.toLowerCase());
+
+      // Track each tag that was searched but is not already in usually viewed tags
       for (const tag of filters.tags) {
-        await this.profileService.trackTagView(user.id, tag);
+        if (!usuallyViewedTagsLower.includes(tag.toLowerCase())) {
+          await this.profileService.trackTagView(user.id, tag);
+        }
       }
     }
   }
