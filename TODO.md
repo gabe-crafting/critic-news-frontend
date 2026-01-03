@@ -3,11 +3,11 @@
 ## High Priority Issues
 
 ### 🔴 Filtering & Performance Issues
-- **Strange tag fetching requests during filtering** - Investigate why filtering posts triggers unexpected tag fetch requests
 - **Add refresh button for posts** - Implement refresh functionality that fetches new posts by checking date (avoid refetching existing posts)
 - **Tag filtering optimization** - When filtering by tags, refetch posts from server with date-based optimization instead of client-side filtering
 
 ## Completed Optimizations ✅
+- ✅ **Strange tag fetching requests during filtering** - Optimized tag tracking to use local profile data instead of unnecessary API calls
 - ✅ **Components make extra requests** - Eliminated duplicate API calls and implemented proper store-based architecture
 - ✅ **Optimize profile page loading** - Improved loading performance with store-based data management
 - ✅ **Fix followers count display** - Resolved follower count issues with optimized fetching
